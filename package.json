@@ -1,0 +1,38 @@
+{
+  "name": "greatformat",
+  "version": "1.0.0",
+  "description": "GreatFormat (太棒格式) - 疯狂钻石主题全本地离线文件格式转换器 (Word / PDF / 图片互转与原子重组)",
+  "main": "electron-main.js",
+  "bin": {
+    "greatformat": "./cli.js",
+    "dora": "./cli.js"
+  },
+  "scripts": {
+    "start": "electron .",
+    "desktop": "electron .",
+    "cli": "node cli.js",
+    "test": "node tests/test-converters.js"
+  },
+  "keywords": [
+    "file-converter",
+    "pdf-converter",
+    "word-converter",
+    "image-converter",
+    "jojo",
+    "crazy-diamond",
+    "electron",
+    "offline-tool"
+  ],
+  "author": "liuGuanYi",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.1.0",
+    "docx": "^9.1.1",
+    "mammoth": "^1.8.0",
+    "pdf-lib": "^1.17.9",
+    "sharp": "^0.33.5"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0"
+  }
+}

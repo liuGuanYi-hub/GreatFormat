@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GreatFormat 太棒格式 - 疯狂钻石主题本地转换器</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- 顶部导航栏 -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="diamond-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="6 3 18 3 22 9 12 22 2 9" fill="url(#diamond-grad)" stroke="#EC4899" />
+            <defs>
+              <linearGradient id="diamond-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#8B5CF6"/>
+                <stop offset="100%" stop-color="#EC4899"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>GreatFormat <span class="tag">太棒格式</span></h1>
+          <p class="subtitle">Crazy Diamond · 纯本地离线原子重组转换器</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="output-dir-picker" id="outputDirPicker">
+          <span class="label">保存目录:</span>
+          <span class="path" id="savePathDisplay">原文件同级目录</span>
+          <button class="btn btn-outline btn-sm" id="changeSaveDirBtn">更改</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 主交互工作区 -->
+    <main class="app-main">
+      <!-- 左侧：仗助与替身动态交互状态展示区 -->
+      <aside class="mascot-panel">
+        <div class="character-card">
+          <div class="avatar-wrapper" id="mascotAvatar">
+            <!-- 仗助与疯狂钻石 SVG 插画徽章 -->
+            <div class="character-glow"></div>
+            <div class="character-emoji" id="mascotEmoji">💎</div>
+          </div>
+          <div class="character-dialog">
+            <div class="bubble-tail"></div>
+            <div class="dialog-title" id="mascotName">东方仗助</div>
+            <div class="dialog-content" id="mascotSpeech">
+              「把需要重组的文件拖进来吧！这可真是太 Great 了！」
+            </div>
+          </div>
+          <div class="stand-stat">
+            <div class="stat-badge">替身：疯狂钻石 (Crazy Diamond)</div>
+            <div class="stat-desc">破坏并以原子级精度修复 / 重构物质</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 右侧：文件拖拽与转换队列管理 -->
+      <section class="workspace-panel">
+        <!-- 拖拽放置区域 -->
+        <div class="drop-zone" id="dropZone">
+          <div class="drop-content">
+            <div class="drop-icon">
+              <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <h3>拖拽文件至此处，或 <span class="highlight">点击选取文件</span></h3>
+            <p class="drop-tip">支持 Word (.docx) ↔ PDF ↔ 图片 (.png/.jpg/.webp/.ico) 全本地极速互转</p>
+          </div>
+          <input type="file" id="fileInput" multiple style="display: none;">
+        </div>
+
+        <!-- 任务列表控制栏 -->
+        <div class="queue-header" id="queueHeader" style="display: none;">
+          <div class="queue-title">
+            <span>待重构文件清单 (<strong id="taskCount">0</strong>)</span>
+          </div>
+          <div class="queue-controls">
+            <label class="batch-label">批量统一目标:</label>
+            <select id="batchTargetSelect" class="select-box">
+              <option value="">-- 选择格式 --</option>
+              <option value="pdf">PDF (.pdf)</option>
+              <option value="docx">Word (.docx)</option>
+              <option value="png">PNG (.png)</option>
+              <option value="jpg">JPG (.jpg)</option>
+              <option value="webp">WebP (.webp)</option>
+              <option value="ico">ICO (.ico)</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" id="clearAllBtn">清空全部</button>
+          </div>
+        </div>
+
+        <!-- 任务队列列表 -->
+        <div class="task-list" id="taskList"></div>
+
+        <!-- 底部主操作区 -->
+        <div class="action-footer" id="actionFooter" style="display: none;">
+          <div class="footer-stats">
+            <span id="footerStatusText">准备就绪，随时可启动原子重构</span>
+          </div>
+          <button class="btn btn-primary btn-lg btn-glow" id="startConvertBtn">
+            <span class="btn-icon">⚡</span>
+            <span class="btn-text">DORARARA! 开始转换</span>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!-- 转换完成浮层提示 / 预览抽屉 -->
+    <div class="preview-drawer" id="previewDrawer">
+      <div class="drawer-header">
+        <h3>重组结果预览</h3>
+        <button class="btn-close" id="closeDrawerBtn">&times;</button>
+      </div>
+      <div class="drawer-body" id="drawerBody">
+        <!-- 动态生成结果 -->
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
