@@ -4,7 +4,6 @@ const { exec } = require('child_process');
 const util = require('util');
 const execAsync = util.promisify(exec);
 const { PDFDocument } = require('pdf-lib');
-const sharp = require('sharp');
 const { ensureDirSync } = require('./utils');
 
 class PdfEngine {
@@ -59,48 +58,65 @@ cv.close()
   }
 
   /**
-   * PDF 转图片 (逐页提取或转换)
+   * PDF 转图片 (使用 PyMuPDF 高清逐页渲染)
    * @param {string} inputPath 
    * @param {string} outputDir 
-   * @param {string} format 'png' | 'jpg' | 'webp'
+   * @param {Object} options 
    */
-  static async pdfToImages(inputPath, outputDir, format = 'png') {
+  static async pdfToImages(inputPath, outputDir, options = {}) {
     if (!fs.existsSync(inputPath)) {
       throw new Error(`PDF 文件不存在: ${inputPath}`);
     }
 
+    const format = (options.format || 'png').toLowerCase().replace(/^\./, '');
     ensureDirSync(outputDir);
     const resolvedInput = path.resolve(inputPath);
-    const pdfBytes = fs.readFileSync(resolvedInput);
-    const pdfDoc = await PDFDocument.load(pdfBytes);
-    const pageCount = pdfDoc.getPageCount();
-
-    const outputFiles = [];
+    const resolvedOutputDir = path.resolve(outputDir);
     const baseName = path.basename(resolvedInput, path.extname(resolvedInput));
 
-    // 使用基础提取或调用 Poppler/Sharp
-    for (let i = 0; i < pageCount; i++) {
-      const singlePageDoc = await PDFDocument.create();
-      const [copiedPage] = await singlePageDoc.copyPages(pdfDoc, [i]);
-      singlePageDoc.addPage(copiedPage);
+    // 使用 PyMuPDF 高速渲染高质量光栅图像 (DPI 150)
+    try {
+      const pyScript = `
+import sys
+import os
+import fitz
 
-      const singlePdfBytes = await singlePageDoc.save();
-      const tempPdfPath = path.join(outputDir, `${baseName}_temp_page_${i + 1}.pdf`);
-      fs.writeFileSync(tempPdfPath, singlePdfBytes);
+pdf_path = sys.argv[1]
+out_dir = sys.argv[2]
+fmt = sys.argv[3]
+base_name = sys.argv[4]
 
-      const outImagePath = path.join(outputDir, `${baseName}_page_${i + 1}.${format}`);
+doc = fitz.open(pdf_path)
+for i, page in enumerate(doc):
+    pix = page.get_pixmap(dpi=150)
+    out_file = os.path.join(out_dir, f"{base_name}_page_{i+1}.{fmt}")
+    pix.save(out_file)
+`;
+      const tempPy = path.join(resolvedOutputDir, `render_pdf_${Date.now()}.py`);
+      fs.writeFileSync(tempPy, pyScript, 'utf8');
 
-      // 提取并保存
-      outputFiles.push(outImagePath);
-      if (fs.existsSync(tempPdfPath)) fs.unlinkSync(tempPdfPath);
+      await execAsync(`python "${tempPy}" "${resolvedInput}" "${resolvedOutputDir}" "${format}" "${baseName}"`);
+      if (fs.existsSync(tempPy)) fs.unlinkSync(tempPy);
+
+      // 扫描生成的文件
+      const files = fs.readdirSync(resolvedOutputDir)
+        .filter(f => f.startsWith(baseName) && f.endsWith(`.${format}`))
+        .map(f => path.join(resolvedOutputDir, f));
+
+      if (files.length > 0) {
+        return {
+          success: true,
+          engine: 'PyMuPDF Vector Rasterizer',
+          pages: files.length,
+          outputPath: files[0], // 主输出文件为第一页图片
+          outputFiles: files
+        };
+      }
+    } catch (err) {
+      console.warn('[PdfEngine] PyMuPDF 渲染异常:', err.message);
     }
 
-    return {
-      success: true,
-      engine: 'PDF Extraction Engine',
-      pages: pageCount,
-      outputFiles
-    };
+    throw new Error('PDF 转图片失败：未能成功渲染页面');
   }
 
   /**

@@ -71,17 +71,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  let activeVoiceAudio = null;
+
   // 播放原声音频文件 (MP3 / WAV)
   function playAudioFile(fileName) {
     if (!audioEnabled) return null;
     try {
+      if (activeVoiceAudio) {
+        try {
+          activeVoiceAudio.pause();
+          activeVoiceAudio.currentTime = 0;
+        } catch {}
+      }
       const audio = new Audio(`../assets/audio/${fileName}`);
-      audio.volume = 0.95;
+      audio.volume = 1.0;
+      activeVoiceAudio = audio;
       audio.play().catch(err => console.warn(`[Audio] Play ${fileName} failed:`, err.message));
       return audio;
     } catch (e) {
       console.warn('[Audio] Audio error:', e);
       return null;
+    }
+  }
+
+  function stopVoiceAudio() {
+    if (activeVoiceAudio) {
+      try {
+        activeVoiceAudio.pause();
+        activeVoiceAudio.currentTime = 0;
+      } catch {}
+      activeVoiceAudio = null;
     }
   }
 
@@ -126,15 +145,17 @@ document.addEventListener('DOMContentLoaded', () => {
         spawnMangaSfx('ゴゴゴゴ');
         break;
       case 'converting':
+        stopVoiceAudio();
         mascotAvatar.classList.add('converting');
         mascotImg.src = '../assets/josuke_fullbody_official.png';
         standStatusBadge.textContent = 'ドララララ！';
         standStatusBadge.style.background = 'rgba(251, 191, 36, 0.7)';
         mascotSpeech.innerText = customText || JOJO_LINES.CONVERTING.text;
-        // 播放东方仗助原声战吼
+        // 播放东方仗助原声拳击战吼
         playAudioFile('dorarara.mp3');
         break;
       case 'success':
+        stopVoiceAudio();
         mascotImg.src = '../assets/josuke_fullbody_official.png';
         standStatusBadge.textContent = 'グレート！';
         standStatusBadge.style.background = 'rgba(16, 185, 129, 0.6)';
@@ -144,6 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         spawnMangaSfx('グレート！');
         break;
       case 'error':
+        stopVoiceAudio();
         mascotImg.src = '../assets/josuke_fullbody_official.png';
         standStatusBadge.textContent = '重組失敗';
         standStatusBadge.style.background = 'rgba(239, 68, 68, 0.7)';

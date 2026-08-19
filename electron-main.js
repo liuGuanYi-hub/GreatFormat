@@ -101,6 +101,10 @@ function registerIpcHandlers() {
         await shell.openPath(filePath);
         return { success: true };
       }
+      if (filePath && fs.existsSync(path.dirname(filePath))) {
+        await shell.openPath(path.dirname(filePath));
+        return { success: true };
+      }
       return { success: false, error: '文件不存在' };
     } catch (e) {
       console.error('[Main] openPath error:', e);
@@ -113,6 +117,10 @@ function registerIpcHandlers() {
     try {
       if (filePath && fs.existsSync(filePath)) {
         shell.showItemInFolder(filePath);
+        return { success: true };
+      }
+      if (filePath && fs.existsSync(path.dirname(filePath))) {
+        await shell.openPath(path.dirname(filePath));
         return { success: true };
       }
       return { success: false, error: '文件不存在' };
