@@ -1,4 +1,4 @@
-// GreatFormat 渲染层逻辑 (东方仗助与疯狂钻石互动核心)
+// GreatFormat 渲染层逻辑 (东方仗助与疯狂钻石 日语原声台词 & 动态气泡系统)
 document.addEventListener('DOMContentLoaded', () => {
   const dropZone = document.getElementById('dropZone');
   const fileInput = document.getElementById('fileInput');
@@ -58,84 +58,116 @@ document.addEventListener('DOMContentLoaded', () => {
     txt: ['docx', 'pdf']
   };
 
-  // JOJO 音效与语音合成系统
-  function playJojoSound(type) {
+  // JOJO 日语台词库
+  const JOJO_LINES = {
+    IDLE: {
+      text: '「ファイルをドラッグ＆ドロップしてくれ！グレートに行こうぜ！」\n（把需要重组的文件拖进来吧！这可真是太 Great 了！）',
+      ja: 'ファイルをドラッグ＆ドロップしてくれ！'
+    },
+    DRAG: {
+      text: '「クレイジー・ダイヤモンド！スタンド出現！」\n（替身出击！疯狂钻石准备拆解与重构！）',
+      ja: 'クレイジー・ダイヤモンド！'
+    },
+    CONVERTING: {
+      text: '「ドララララララララララララッ！！DORARARARA！！」\n（ドラララ！疯狂钻石正在极速原子重组中！）',
+      ja: 'ドララララララララララララッ！'
+    },
+    SUCCESS: {
+      text: '「グレートですよ、こいつはァ！完璧に直ったぜ！」\n（这可真是太 Great 了！所有文件已完美重构完毕！）',
+      ja: 'グレートですよ、こいつはァ！'
+    },
+    ERROR: {
+      text: '「な、何だとォ！？この仗助サマの髪型をケナしたなァ！？」\n（可恶！竟然遇到了阻碍！点击查看详细排查信息）',
+      ja: 'な、何だとォ！？'
+    }
+  };
+
+  // 播放本地音频或合成音效
+  function playAudioClip(audioName) {
     if (!audioEnabled) return;
     try {
-      const ctx = getAudioContext();
-      if (!ctx) return;
-      if (ctx.state === 'suspended') ctx.resume();
-
-      const now = ctx.currentTime;
-
-      if (type === 'punch') {
-        // 替身连打打击音效
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(180, now);
-        osc.frequency.exponentialRampToValueAtTime(40, now + 0.12);
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.12);
-      } else if (type === 'victory') {
-        // Great! 黄金精神闪耀和弦
-        [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(freq, now + i * 0.08);
-          gain.gain.setValueAtTime(0.2, now + i * 0.08);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.6);
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start(now + i * 0.08);
-          osc.stop(now + i * 0.08 + 0.6);
-        });
-      } else if (type === 'error') {
-        // 失败音效
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(120, now);
-        osc.frequency.linearRampToValueAtTime(60, now + 0.3);
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.3);
-      }
-    } catch (e) {
-      console.warn('[Audio] SFX error:', e);
+      const audioPath = `../assets/audio/${audioName}.mp3`;
+      const audio = new Audio(audioPath);
+      audio.volume = 0.9;
+      audio.play().catch(() => {
+        // 如果本地 mp3 暂未放置，自动回退到 Web Audio 合成音效
+        if (audioName === 'dorarara') playSynthesizedBarrage();
+        else if (audioName === 'great_daze') playSynthesizedVictory();
+      });
+    } catch {
+      if (audioName === 'dorarara') playSynthesizedBarrage();
+      else if (audioName === 'great_daze') playSynthesizedVictory();
     }
   }
 
-  // 语音合成朗读台词
-  function speakLine(text) {
+  // 合成连打重击音效
+  function playSynthesizedBarrage() {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume();
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(35, now + 0.15);
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.15);
+  }
+
+  // 合成胜利和弦音效
+  function playSynthesizedVictory() {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume();
+    const now = ctx.currentTime;
+    [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + i * 0.08);
+      gain.gain.setValueAtTime(0.2, now + i * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.6);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + i * 0.08);
+      osc.stop(now + i * 0.08 + 0.6);
+    });
+  }
+
+  // 日语语音朗读 (SpeechSynthesis ja-JP 原生语音)
+  function speakJapanese(text) {
     if (!audioEnabled || !window.speechSynthesis) return;
     try {
       window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(text);
-      utter.rate = 1.1;
-      utter.pitch = 1.05;
+      utter.lang = 'ja-JP'; // 纯正日语发音
+      utter.rate = 1.15;
+      utter.pitch = 1.0;
+
+      // 寻找日语声音引擎
+      const voices = window.speechSynthesis.getVoices();
+      const jpVoice = voices.find(v => v.lang.includes('ja') || v.name.includes('Japanese'));
+      if (jpVoice) utter.voice = jpVoice;
+
       window.speechSynthesis.speak(utter);
     } catch (e) {
-      console.warn('[Speech] Synthesis error:', e);
+      console.warn('[Speech] JA Synthesis error:', e);
     }
   }
 
-  // 漫画拟声词特效生成
+  // 漫画拟声词漂浮特效
   function spawnMangaSfx(text) {
     const sfx = document.createElement('div');
     sfx.className = 'manga-sfx';
     sfx.textContent = text;
-    sfx.style.left = Math.random() * 60 + 20 + '%';
-    sfx.style.top = Math.random() * 50 + 25 + '%';
-    sfx.style.fontSize = Math.random() * 16 + 28 + 'px';
+    sfx.style.left = Math.random() * 55 + 25 + '%';
+    sfx.style.top = Math.random() * 45 + 25 + '%';
+    sfx.style.fontSize = Math.random() * 16 + 32 + 'px';
     mangaSfxContainer.appendChild(sfx);
     setTimeout(() => sfx.remove(), 1400);
   }
@@ -148,39 +180,39 @@ document.addEventListener('DOMContentLoaded', () => {
         mascotImg.src = '../assets/josuke_idle.png';
         standStatusBadge.textContent = '待命中';
         standStatusBadge.style.background = 'rgba(139, 92, 246, 0.3)';
-        mascotSpeech.textContent = customText || '「把需要重组的文件拖进来吧！这可真是太 Great 了！」';
+        mascotSpeech.innerText = customText || JOJO_LINES.IDLE.text;
         break;
       case 'dragover':
         mascotImg.src = '../assets/josuke_action.png';
         standStatusBadge.textContent = '替身出击';
         standStatusBadge.style.background = 'rgba(236, 72, 153, 0.5)';
-        mascotSpeech.textContent = '「替身出击！准备进行原子级拆解与重构！」';
+        mascotSpeech.innerText = JOJO_LINES.DRAG.text;
         spawnMangaSfx('ゴゴゴゴ');
         break;
       case 'converting':
         mascotAvatar.classList.add('converting');
         mascotImg.src = '../assets/josuke_action.png';
-        standStatusBadge.textContent = 'DORARARA!';
-        standStatusBadge.style.background = 'rgba(251, 191, 36, 0.6)';
-        mascotSpeech.textContent = customText || '「DORARARARA! 疯狂钻石正在极速原子重组中！」';
-        speakLine('DORARARARA! 疯狂钻石，开始原子重组！');
+        standStatusBadge.textContent = 'ドララララ！';
+        standStatusBadge.style.background = 'rgba(251, 191, 36, 0.7)';
+        mascotSpeech.innerText = customText || JOJO_LINES.CONVERTING.text;
+        playAudioClip('dorarara');
+        speakJapanese(JOJO_LINES.CONVERTING.ja);
         break;
       case 'success':
         mascotImg.src = '../assets/josuke_success.png';
-        standStatusBadge.textContent = 'Great!';
-        standStatusBadge.style.background = 'rgba(16, 185, 129, 0.5)';
-        mascotSpeech.textContent = customText || '「这可真是太 Great 了！所有文件已完美重构完毕！」';
-        playJojoSound('victory');
-        speakLine('这可真是太 Great 了！');
-        spawnMangaSfx('GREAT!');
+        standStatusBadge.textContent = 'グレート！';
+        standStatusBadge.style.background = 'rgba(16, 185, 129, 0.6)';
+        mascotSpeech.innerText = customText || JOJO_LINES.SUCCESS.text;
+        playAudioClip('great_daze');
+        speakJapanese(JOJO_LINES.SUCCESS.ja);
+        spawnMangaSfx('グレート！');
         break;
       case 'error':
         mascotImg.src = '../assets/josuke_action.png';
-        standStatusBadge.textContent = '重组受阻';
-        standStatusBadge.style.background = 'rgba(239, 68, 68, 0.6)';
-        mascotSpeech.textContent = customText || '「可恶！竟然遇到了阻碍，点击失败红色标签查看原因！」';
-        playJojoSound('error');
-        speakLine('可恶！重组遇到了阻碍！');
+        standStatusBadge.textContent = '重組失敗';
+        standStatusBadge.style.background = 'rgba(239, 68, 68, 0.7)';
+        mascotSpeech.innerText = customText || JOJO_LINES.ERROR.text;
+        speakJapanese(JOJO_LINES.ERROR.ja);
         spawnMangaSfx('ドドドド');
         break;
     }
@@ -193,7 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
       audioIcon.textContent = '🔊';
       audioText.textContent = 'JOJO 语音: 开启';
       audioToggleBtn.classList.remove('muted');
-      speakLine('语音已开启！');
+      speakJapanese('グレートですよ！');
     } else {
       audioIcon.textContent = '🔇';
       audioText.textContent = 'JOJO 语音: 关闭';
@@ -202,7 +234,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 辅助函数：格式化大小
   function formatSize(bytes) {
     if (!bytes) return '0 B';
     const k = 1024;
@@ -211,12 +242,10 @@ document.addEventListener('DOMContentLoaded', () => {
     return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
   }
 
-  // 辅助函数：获取扩展名
   function getExt(filePath) {
     return (filePath.split('.').pop() || '').toLowerCase();
   }
 
-  // 获取文件真实路径
   function resolveFilePath(file) {
     if (window.electronAPI?.getPathForFile) {
       const p = window.electronAPI.getPathForFile(file);
@@ -225,7 +254,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return file.path || file.name;
   }
 
-  // 添加文件到队列
   function addFiles(files) {
     let addedCount = 0;
     for (const file of files) {
@@ -233,7 +261,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const ext = getExt(realPath || file.name);
       const availableTargets = FORMAT_OPTIONS[ext] || ['pdf'];
       
-      // 检查是否已在队列
       if (tasks.some(t => t.path === realPath)) continue;
 
       tasks.push({
@@ -255,11 +282,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (addedCount > 0) {
       renderTasks();
-      setMascotState('idle', `「已装载 ${tasks.length} 个待重构文件！选择目标格式后点击转换即可！」`);
+      setMascotState('idle', `「${tasks.length} 個のファイルを装填したぜ！目標フォーマットを選んで変換ボタンを押してくれ！」\n（已装载 ${tasks.length} 个文件！选择目标格式后点击转换！）`);
     }
   }
 
-  // 渲染任务列表
   function renderTasks() {
     taskList.innerHTML = '';
     taskCountEl.textContent = tasks.length;
@@ -312,7 +338,6 @@ document.addEventListener('DOMContentLoaded', () => {
       taskList.appendChild(item);
     });
 
-    // 绑定事件
     document.querySelectorAll('.remove-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = e.target.getAttribute('data-id');
@@ -346,7 +371,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 打开成功预览
   function openPreview(task) {
     drawerTitle.textContent = '重组结果预览';
     drawerBody.innerHTML = `
@@ -369,7 +393,6 @@ document.addEventListener('DOMContentLoaded', () => {
     previewDrawer.classList.add('open');
   }
 
-  // 打开错误详情排查
   function openErrorDrawer(task) {
     drawerTitle.textContent = '💥 错误排查详情';
     drawerBody.innerHTML = `
@@ -395,7 +418,6 @@ document.addEventListener('DOMContentLoaded', () => {
     previewDrawer.classList.remove('open');
   });
 
-  // 拖拽与文件选取
   dropZone.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', (e) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -423,7 +445,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 批量修改目标
   batchTargetSelect.addEventListener('change', (e) => {
     const val = e.target.value;
     if (!val) return;
@@ -435,13 +456,11 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTasks();
   });
 
-  // 清空全部
   clearAllBtn.addEventListener('click', () => {
     tasks = [];
     renderTasks();
   });
 
-  // 更改输出目录
   changeSaveDirBtn.addEventListener('click', async () => {
     if (window.electronAPI?.selectDirectory) {
       const selected = await window.electronAPI.selectDirectory();
@@ -458,13 +477,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setMascotState('converting');
     startConvertBtn.disabled = true;
-    footerStatusText.textContent = 'DORARARA! 疯狂钻石正在高速原子重组中...';
+    footerStatusText.textContent = 'ドララララ！疯狂钻石正在高速原子重组中...';
 
-    // 周期性产生打击音效与拟声词
     const sfxInterval = setInterval(() => {
-      playJojoSound('punch');
-      spawnMangaSfx(Math.random() > 0.5 ? 'DORA!' : 'DORARARA!');
-    }, 280);
+      playSynthesizedBarrage();
+      spawnMangaSfx(Math.random() > 0.5 ? 'ドラァ！' : 'ドラララ！');
+    }, 260);
 
     let successCount = 0;
     let failCount = 0;
@@ -493,7 +511,6 @@ document.addEventListener('DOMContentLoaded', () => {
             failCount++;
           }
         } else {
-          // 浏览器调试模式模拟
           await new Promise(r => setTimeout(r, 600));
           task.status = 'success';
           task.outputPath = task.path.replace(/\.[^/.]+$/, `.${task.target}`);
@@ -513,10 +530,10 @@ document.addEventListener('DOMContentLoaded', () => {
     startConvertBtn.disabled = false;
 
     if (failCount === 0) {
-      setMascotState('success', `「太棒了！共 ${successCount} 个文件全部完成原子重构！这可真是太 Great 了！」`);
+      setMascotState('success');
       footerStatusText.textContent = `全部完成 (${successCount}/${tasks.length})`;
     } else {
-      setMascotState('error', `「完成 ${successCount} 个，有 ${failCount} 个重组失败！点击【✗ 失败】查看详细排查信息！」`);
+      setMascotState('error');
       footerStatusText.textContent = `处理完毕 (成功: ${successCount}, 失败: ${failCount})`;
     }
   });
