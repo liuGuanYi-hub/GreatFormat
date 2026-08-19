@@ -73,20 +73,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let activeVoiceAudio = null;
 
-  // 播放原声音频文件 (MP3 / WAV)
-  function playAudioFile(fileName) {
+  // 播放原声音频文件 (带平滑淡入渐变)
+  function playAudioFile(fileName, fadeInMs = 100) {
     if (!audioEnabled) return null;
     try {
-      if (activeVoiceAudio) {
-        try {
-          activeVoiceAudio.pause();
-          activeVoiceAudio.currentTime = 0;
-        } catch {}
-      }
+      // 若当前有正在播放的语音，先执行 160ms 快速淡出平滑过渡
+      stopVoiceAudio(160);
+
       const audio = new Audio(`../assets/audio/${fileName}`);
-      audio.volume = 1.0;
+      audio.volume = 0.0;
       activeVoiceAudio = audio;
-      audio.play().catch(err => console.warn(`[Audio] Play ${fileName} failed:`, err.message));
+
+      const playPromise = audio.play();
+      if (playPromise) {
+        playPromise.then(() => {
+          const start = Date.now();
+          const timer = setInterval(() => {
+            const elapsed = Date.now() - start;
+            const factor = Math.min(1, elapsed / fadeInMs);
+            audio.volume = factor;
+            if (factor >= 1) clearInterval(timer);
+          }, 16);
+        }).catch(err => console.warn(`[Audio] Play ${fileName} failed:`, err.message));
+      }
       return audio;
     } catch (e) {
       console.warn('[Audio] Audio error:', e);
@@ -94,13 +103,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function stopVoiceAudio() {
+  // 停止语音 (带平滑淡出渐变，避免截断破音)
+  function stopVoiceAudio(fadeOutMs = 200) {
     if (activeVoiceAudio) {
-      try {
-        activeVoiceAudio.pause();
-        activeVoiceAudio.currentTime = 0;
-      } catch {}
+      const targetAudio = activeVoiceAudio;
       activeVoiceAudio = null;
+      const startVol = targetAudio.volume;
+      const start = Date.now();
+
+      const timer = setInterval(() => {
+        const elapsed = Date.now() - start;
+        const factor = Math.min(1, elapsed / fadeOutMs);
+        targetAudio.volume = Math.max(0, startVol * (1 - factor));
+        if (factor >= 1) {
+          clearInterval(timer);
+          try {
+            targetAudio.pause();
+            targetAudio.currentTime = 0;
+          } catch {}
+        }
+      }, 16);
     }
   }
 
