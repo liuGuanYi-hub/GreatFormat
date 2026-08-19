@@ -8,9 +8,9 @@
     "dora": "./cli.js"
   },
   "scripts": {
-    "start": "electron .",
-    "desktop": "electron .",
-    "cli": "node cli.js",
+    "start": "chcp 65001 >nul && electron .",
+    "desktop": "chcp 65001 >nul && electron .",
+    "cli": "chcp 65001 >nul && node cli.js",
     "test": "node tests/test-converters.js"
   },
   "keywords": [

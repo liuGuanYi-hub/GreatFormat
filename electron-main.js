@@ -29,11 +29,12 @@ function registerIpcHandlers() {
   ipcMain.handle('greatformat:convert', async (event, params) => {
     try {
       const { inputPath, targetFormat, options = {}, outputDir } = params;
-      console.log(`[Main] 开始转换任务: input="${inputPath}", target="${targetFormat}", outDir="${outputDir}"`);
+      console.log(`[Main] [Converting] input="${inputPath}", target="${targetFormat}", outDir="${outputDir || 'default'}"`);
       const result = await ConverterHub.convert(inputPath, targetFormat, { ...options, outputDir });
+      console.log(`[Main] [Success] Great! Reassembly completed.`);
       return { success: true, ...result };
     } catch (err) {
-      console.error('[Main] 转换失败:', err);
+      console.error(`[Main] [Error] Failed: ${err.message}`);
       return {
         success: false,
         error: err.message || '未知错误',
