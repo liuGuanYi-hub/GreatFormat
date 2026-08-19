@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer, shell, webUtils } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   getPathForFile: (file) => {
@@ -14,6 +14,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   convertFile: (params) => ipcRenderer.invoke('greatformat:convert', params),
   selectDirectory: () => ipcRenderer.invoke('greatformat:select-dir'),
   getCapabilities: () => ipcRenderer.invoke('greatformat:capabilities'),
-  openPath: (filePath) => shell.openPath(filePath),
-  showItemInFolder: (filePath) => shell.showItemInFolder(filePath)
+  openPath: (filePath) => ipcRenderer.invoke('greatformat:open-path', filePath),
+  showItemInFolder: (filePath) => ipcRenderer.invoke('greatformat:show-in-folder', filePath)
 });

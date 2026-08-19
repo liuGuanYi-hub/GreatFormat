@@ -94,6 +94,34 @@ function registerIpcHandlers() {
     return result.filePaths[0];
   });
 
+  // 打开转换后文件
+  ipcMain.handle('greatformat:open-path', async (event, filePath) => {
+    try {
+      if (filePath && fs.existsSync(filePath)) {
+        await shell.openPath(filePath);
+        return { success: true };
+      }
+      return { success: false, error: '文件不存在' };
+    } catch (e) {
+      console.error('[Main] openPath error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  // 在文件夹中显示文件
+  ipcMain.handle('greatformat:show-in-folder', async (event, filePath) => {
+    try {
+      if (filePath && fs.existsSync(filePath)) {
+        shell.showItemInFolder(filePath);
+        return { success: true };
+      }
+      return { success: false, error: '文件不存在' };
+    } catch (e) {
+      console.error('[Main] showItemInFolder error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
   // 获取支持格式能力
   ipcMain.handle('greatformat:capabilities', async () => {
     return ConverterHub.getCapabilities();

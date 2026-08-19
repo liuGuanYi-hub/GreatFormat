@@ -1,4 +1,4 @@
-// GreatFormat 渲染层逻辑 (东方仗助与疯狂钻石 日语原声台词 & 动态气泡系统)
+// GreatFormat 渲染层逻辑 (东方仗助与疯狂钻石 日语原声台词 & 拳击打击音效系统)
 document.addEventListener('DOMContentLoaded', () => {
   const dropZone = document.getElementById('dropZone');
   const fileInput = document.getElementById('fileInput');
@@ -24,21 +24,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const audioIcon = document.getElementById('audioIcon');
   const audioText = document.getElementById('audioText');
   const mangaSfxContainer = document.getElementById('mangaSfxContainer');
+  const globalProgressWrapper = document.getElementById('globalProgressWrapper');
+  const progressBarFill = document.getElementById('progressBarFill');
+  const progressPercentLabel = document.getElementById('progressPercentLabel');
+  const progressStatusLabel = document.getElementById('progressStatusLabel');
 
   // 任务队列数据
   let tasks = [];
   let customSaveDir = null;
   let audioEnabled = true;
-
-  // Web Audio 上下文 (用于合成动作音效)
-  let audioCtx = null;
-  function getAudioContext() {
-    if (!audioCtx) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (AudioContext) audioCtx = new AudioContext();
-    }
-    return audioCtx;
-  }
 
   // 格式对应关系
   const FORMAT_OPTIONS = {
@@ -61,123 +55,45 @@ document.addEventListener('DOMContentLoaded', () => {
   // JOJO 日语台词库
   const JOJO_LINES = {
     IDLE: {
-      text: '「ファイルをドラッグ＆ドロップしてくれ！グレートに行こうぜ！」\n（把需要重组的文件拖进来吧！这可真是太 Great 了！）',
-      ja: 'ファイルをドラッグ＆ドロップしてくれ！'
+      text: '「ファイルをドラッグ＆ドロップしてくれ！グレートに行こうぜ！」\n（把需要重组的文件拖进来吧！这可真是太 Great 了！）'
     },
     DRAG: {
-      text: '「クレイジー・ダイヤモンド！スタンド出現！」\n（替身出击！疯狂钻石准备拆解与重构！）',
-      ja: 'クレイジー・ダイヤモンド！'
+      text: '「クレイジー・ダイヤモンド！スタンド出現！」\n（替身出击！疯狂钻石准备拆解与重构！）'
     },
     CONVERTING: {
-      text: '「ドララララララララララララッ！！DORARARARA！！」\n（ドラララ！疯狂钻石正在极速原子重组中！）',
-      ja: 'ドララララララララララララッ！'
+      text: '「ドララララララララララララッ！！DORARARARA！！」\n（ドラララ！疯狂钻石正在极速原子重组中！）'
     },
     SUCCESS: {
-      text: '「グレートですよ、こいつはァ！完璧に直ったぜ！」\n（这可真是太 Great 了！所有文件已完美重构完毕！）',
-      ja: 'グレートですよ、こいつはァ！'
+      text: '「グレートですよ、こいつはァ！完璧に直ったぜ！」\n（这可真是太 Great 了！所有文件已完美重构完毕！）'
     },
     ERROR: {
-      text: '「な、何だとォ！？この仗助サマの髪型をケナしたなァ！？」\n（可恶！竟然遇到了阻碍！点击查看详细排查信息）',
-      ja: 'な、何だとォ！？'
+      text: '「な、何だとォ！？この仗助サマの髪型をケナしたなァ！？」\n（可恶！竟然遇到了阻碍！点击查看详细排查信息）'
     }
   };
 
-  // 播放本地音频或合成音效
-  function playAudioClip(audioName) {
+  // 播放原声音频文件 (MP3 / WAV)
+  function playAudioFile(fileName) {
+    if (!audioEnabled) return null;
+    try {
+      const audio = new Audio(`../assets/audio/${fileName}`);
+      audio.volume = 0.95;
+      audio.play().catch(err => console.warn(`[Audio] Play ${fileName} failed:`, err.message));
+      return audio;
+    } catch (e) {
+      console.warn('[Audio] Audio error:', e);
+      return null;
+    }
+  }
+
+  // 连续拳击音效播放器
+  function playPunchSound() {
     if (!audioEnabled) return;
     try {
-      const audioPath = `../assets/audio/${audioName}.mp3`;
-      const audio = new Audio(audioPath);
-      audio.volume = 0.9;
-      audio.play().catch(() => {
-        // 如果本地 mp3 暂未放置，自动回退到 Web Audio 合成音效
-        if (audioName === 'dorarara') playSynthesizedBarrage();
-        else if (audioName === 'great_daze') playSynthesizedVictory();
-      });
-    } catch {
-      if (audioName === 'dorarara') playSynthesizedBarrage();
-      else if (audioName === 'great_daze') playSynthesizedVictory();
-    }
-  }
-
-  // 高密度疯狂钻石重拳连打打击音效 (DORARARA Punch Barrage)
-  function playSynthesizedBarrage() {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-    if (ctx.state === 'suspended') ctx.resume();
-    const now = ctx.currentTime;
-
-    // 1. 低频重击瞬态 (Sub-punch impact)
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sawtooth';
-    const pitch = 140 + (Math.random() * 40 - 20); // 每次出拳微小音调变奏
-    osc.frequency.setValueAtTime(pitch, now);
-    osc.frequency.exponentialRampToValueAtTime(30, now + 0.08);
-
-    gain.gain.setValueAtTime(0.4, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.08);
-
-    // 2. 拳风撕裂脆响 (Fist crack)
-    const crackOsc = ctx.createOscillator();
-    const crackGain = ctx.createGain();
-    crackOsc.type = 'triangle';
-    crackOsc.frequency.setValueAtTime(360 + Math.random() * 80, now);
-    crackOsc.frequency.exponentialRampToValueAtTime(60, now + 0.05);
-
-    crackGain.gain.setValueAtTime(0.25, now);
-    crackGain.gain.linearRampToValueAtTime(0.01, now + 0.05);
-
-    crackOsc.connect(crackGain);
-    crackGain.connect(ctx.destination);
-    crackOsc.start(now);
-    crackOsc.stop(now + 0.05);
-  }
-
-  // 合成胜利和弦音效
-  function playSynthesizedVictory() {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-    if (ctx.state === 'suspended') ctx.resume();
-    const now = ctx.currentTime;
-    [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, now + i * 0.08);
-      gain.gain.setValueAtTime(0.2, now + i * 0.08);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.6);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now + i * 0.08);
-      osc.stop(now + i * 0.08 + 0.6);
-    });
-  }
-
-  // 日语语音朗读 (SpeechSynthesis ja-JP 原生语音)
-  function speakJapanese(text) {
-    if (!audioEnabled || !window.speechSynthesis) return;
-    try {
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = 'ja-JP'; // 纯正日语发音
-      utter.rate = 1.15;
-      utter.pitch = 1.0;
-
-      // 寻找日语声音引擎
-      const voices = window.speechSynthesis.getVoices();
-      const jpVoice = voices.find(v => v.lang.includes('ja') || v.name.includes('Japanese'));
-      if (jpVoice) utter.voice = jpVoice;
-
-      window.speechSynthesis.speak(utter);
-    } catch (e) {
-      console.warn('[Speech] JA Synthesis error:', e);
-    }
+      const audio = new Audio('../assets/audio/punch.wav');
+      audio.volume = 0.85;
+      audio.playbackRate = 0.95 + Math.random() * 0.2; // 随机轻微变化音调
+      audio.play().catch(() => {});
+    } catch {}
   }
 
   // 漫画拟声词漂浮特效
@@ -215,16 +131,16 @@ document.addEventListener('DOMContentLoaded', () => {
         standStatusBadge.textContent = 'ドララララ！';
         standStatusBadge.style.background = 'rgba(251, 191, 36, 0.7)';
         mascotSpeech.innerText = customText || JOJO_LINES.CONVERTING.text;
-        playAudioClip('dorarara');
-        speakJapanese(JOJO_LINES.CONVERTING.ja);
+        // 播放东方仗助原声战吼
+        playAudioFile('dorarara.mp3');
         break;
       case 'success':
         mascotImg.src = '../assets/josuke_success.png';
         standStatusBadge.textContent = 'グレート！';
         standStatusBadge.style.background = 'rgba(16, 185, 129, 0.6)';
         mascotSpeech.innerText = customText || JOJO_LINES.SUCCESS.text;
-        playAudioClip('great_daze');
-        speakJapanese(JOJO_LINES.SUCCESS.ja);
+        // 播放东方仗助原声 "グレートですよ、こいつはァ！"
+        playAudioFile('great.mp3');
         spawnMangaSfx('グレート！');
         break;
       case 'error':
@@ -232,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
         standStatusBadge.textContent = '重組失敗';
         standStatusBadge.style.background = 'rgba(239, 68, 68, 0.7)';
         mascotSpeech.innerText = customText || JOJO_LINES.ERROR.text;
-        speakJapanese(JOJO_LINES.ERROR.ja);
         spawnMangaSfx('ドドドド');
         break;
     }
@@ -245,12 +160,11 @@ document.addEventListener('DOMContentLoaded', () => {
       audioIcon.textContent = '🔊';
       audioText.textContent = 'JOJO 语音: 开启';
       audioToggleBtn.classList.remove('muted');
-      speakJapanese('グレートですよ！');
+      playAudioFile('great.mp3');
     } else {
       audioIcon.textContent = '🔇';
       audioText.textContent = 'JOJO 语音: 关闭';
       audioToggleBtn.classList.add('muted');
-      if (window.speechSynthesis) window.speechSynthesis.cancel();
     }
   });
 
@@ -313,6 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tasks.length === 0) {
       queueHeader.style.display = 'none';
       actionFooter.style.display = 'none';
+      globalProgressWrapper.style.display = 'none';
       setMascotState('idle');
       return;
     }
@@ -403,11 +318,15 @@ document.addEventListener('DOMContentLoaded', () => {
       <button class="btn btn-outline btn-sm" id="openFolderBtn" style="width: 100%;">打开所在文件夹</button>
     `;
 
-    document.getElementById('openFileBtn')?.addEventListener('click', () => {
-      if (window.electronAPI?.openPath) window.electronAPI.openPath(task.outputPath);
+    document.getElementById('openFileBtn')?.addEventListener('click', async () => {
+      if (window.electronAPI?.openPath) {
+        await window.electronAPI.openPath(task.outputPath);
+      }
     });
-    document.getElementById('openFolderBtn')?.addEventListener('click', () => {
-      if (window.electronAPI?.showItemInFolder) window.electronAPI.showItemInFolder(task.outputPath);
+    document.getElementById('openFolderBtn')?.addEventListener('click', async () => {
+      if (window.electronAPI?.showItemInFolder) {
+        await window.electronAPI.showItemInFolder(task.outputPath);
+      }
     });
 
     previewDrawer.classList.add('open');
@@ -426,7 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div style="font-size: 0.8rem; color: #cbd5e1; line-height: 1.5; padding: 0 4px;">
         <strong>常见排查建议：</strong><br>
         1. 确保源文件没有被其他程序独占占用。<br>
-        2. 如果是 Word 转换，请确保电脑已安装 Microsoft Word / WPS 或 LibreOffice。<br>
+        2. Word 转 PDF 已内置 Chromium 引擎，零安装即可生成。<br>
         3. 如需指定保存位置，可在顶部点击【更改】选择保存目录。
       </div>
     `;
@@ -491,6 +410,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // 更新进度条
+  function updateProgress(percent, label = '') {
+    globalProgressWrapper.style.display = 'block';
+    progressBarFill.style.width = `${percent}%`;
+    progressPercentLabel.textContent = `${Math.round(percent)}%`;
+    if (label) progressStatusLabel.textContent = label;
+  }
+
   // 开始转换 (DORARARA!)
   startConvertBtn.addEventListener('click', async () => {
     if (tasks.length === 0) return;
@@ -499,9 +426,12 @@ document.addEventListener('DOMContentLoaded', () => {
     startConvertBtn.disabled = true;
     footerStatusText.textContent = 'ドララララ！疯狂钻石正在高速原子重组中...';
 
-    // 极速机关枪连打拳击打击音效与拟声词 (DORARARA Barrage)
-    const sfxInterval = setInterval(() => {
-      playSynthesizedBarrage();
+    // 显示进度条初始状态
+    updateProgress(5, '⚡ 替身出击！开始原子级拆解...');
+
+    // 极速机关枪拳击打击音效 (每 110ms 打出一记真实重拳)
+    const punchInterval = setInterval(() => {
+      playPunchSound();
       if (Math.random() > 0.6) {
         spawnMangaSfx(Math.random() > 0.5 ? 'ドラァ！' : 'ドラララ！');
       }
@@ -514,6 +444,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const task = tasks[i];
       task.status = 'converting';
       renderTasks();
+
+      const currentProgress = ((i + 0.3) / tasks.length) * 100;
+      updateProgress(currentProgress, `⚡ 正在重组 [${i + 1}/${tasks.length}]: ${task.name}...`);
 
       try {
         if (window.electronAPI?.convertFile) {
@@ -546,16 +479,20 @@ document.addEventListener('DOMContentLoaded', () => {
         failCount++;
       }
 
+      const itemDoneProgress = ((i + 1) / tasks.length) * 100;
+      updateProgress(itemDoneProgress, `⚡ 处理进度 [${i + 1}/${tasks.length}]`);
       renderTasks();
     }
 
-    clearInterval(sfxInterval);
+    clearInterval(punchInterval);
     startConvertBtn.disabled = false;
 
     if (failCount === 0) {
+      updateProgress(100, '✨ 这可真是太 Great 了！原子重构全部完成！');
       setMascotState('success');
       footerStatusText.textContent = `全部完成 (${successCount}/${tasks.length})`;
     } else {
+      updateProgress(100, `💥 重组完成 (成功: ${successCount}, 失败: ${failCount})`);
       setMascotState('error');
       footerStatusText.textContent = `处理完毕 (成功: ${successCount}, 失败: ${failCount})`;
     }
