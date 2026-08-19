@@ -18,17 +18,11 @@ try {
 }
 
 class ImageEngine {
-  /**
-   * 支持的图片输入与输出格式
-   */
   static SUPPORTED_INPUT_FORMATS = ['png', 'jpg', 'jpeg', 'webp', 'avif', 'bmp', 'gif', 'tiff', 'ico', 'svg'];
   static SUPPORTED_OUTPUT_FORMATS = ['png', 'jpg', 'jpeg', 'webp', 'avif', 'ico', 'tiff', 'pdf'];
 
   /**
    * 单图格式转换与压缩
-   * @param {string} inputPath 
-   * @param {string} outputPath 
-   * @param {Object} [options] { quality: 85, width, height, fit: 'cover' }
    */
   static async convertImage(inputPath, outputPath, options = {}) {
     if (!fs.existsSync(inputPath)) {
@@ -64,7 +58,7 @@ class ImageEngine {
     switch (targetExt) {
       case 'jpg':
       case 'jpeg':
-        pipeline = pipeline.jpeg({ quality, mozjpeg: true });
+        pipeline = pipeline.jpeg({ quality, mozjpeg: false });
         break;
       case 'png':
         pipeline = pipeline.png({ compressionLevel: 9, quality });
@@ -79,7 +73,6 @@ class ImageEngine {
         pipeline = pipeline.tiff({ quality });
         break;
       case 'ico':
-        // ICO 图标生成 (通常支持 16, 32, 48, 64, 128, 256 尺寸的 PNG 包装)
         return await this.generateIco(inputPath, outputPath, options);
       default:
         throw new Error(`不支持的图片目标格式: ${targetExt}`);
@@ -95,9 +88,6 @@ class ImageEngine {
 
   /**
    * 生成 Windows .ico 图标
-   * @param {string} inputPath 
-   * @param {string} outputPath 
-   * @param {Object} options 
    */
   static async generateIco(inputPath, outputPath, options = {}) {
     if (!sharp) {
@@ -109,21 +99,20 @@ class ImageEngine {
       .png()
       .toBuffer();
 
-    // 简易且高兼容性的 ICO header 封装
     const icoHeader = Buffer.alloc(6);
-    icoHeader.writeUInt16LE(0, 0); // 保留
-    icoHeader.writeUInt16LE(1, 2); // 1 = ICO 格式
-    icoHeader.writeUInt16LE(1, 4); // 包含 1 张图像
+    icoHeader.writeUInt16LE(0, 0);
+    icoHeader.writeUInt16LE(1, 2);
+    icoHeader.writeUInt16LE(1, 4);
 
     const icoEntry = Buffer.alloc(16);
-    icoEntry.writeUInt8(size >= 256 ? 0 : size, 0); // 宽度 (0 表示 256)
-    icoEntry.writeUInt8(size >= 256 ? 0 : size, 1); // 高度 (0 表示 256)
-    icoEntry.writeUInt8(0, 2); // 颜色调色板
-    icoEntry.writeUInt8(0, 3); // 保留
-    icoEntry.writeUInt16LE(1, 4); // 颜色平面
-    icoEntry.writeUInt16LE(32, 6); // 每像素位数 (32-bit RGBA)
-    icoEntry.writeUInt32LE(pngBuffer.length, 8); // 数据大小
-    icoEntry.writeUInt32LE(22, 12); // 数据偏移量 (6 + 16 = 22)
+    icoEntry.writeUInt8(size >= 256 ? 0 : size, 0);
+    icoEntry.writeUInt8(size >= 256 ? 0 : size, 1);
+    icoEntry.writeUInt8(0, 2);
+    icoEntry.writeUInt8(0, 3);
+    icoEntry.writeUInt16LE(1, 4);
+    icoEntry.writeUInt16LE(32, 6);
+    icoEntry.writeUInt32LE(pngBuffer.length, 8);
+    icoEntry.writeUInt32LE(22, 12);
 
     const finalBuffer = Buffer.concat([icoHeader, icoEntry, pngBuffer]);
     fs.writeFileSync(outputPath, finalBuffer);
@@ -136,28 +125,41 @@ class ImageEngine {
   }
 
   /**
-   * 多图合并为单个 PDF 文件
-   * @param {string[]} imagePaths 
-   * @param {string} outputPdfPath 
-   * @param {Object} [options] { margin: 0, pageSize: 'fit' | 'A4' }
+   * 多图合并为单个 PDF 文件 (高兼容性处理)
    */
   static async imagesToPdf(imagePaths, outputPdfPath, options = {}) {
     if (!imagePaths || imagePaths.length === 0) {
       throw new Error('请至少提供一张图片');
     }
 
+    if (!PDFDocument) {
+      throw new Error('pdf-lib 模块未加载，请确认已执行 npm install');
+    }
+
     ensureDirSync(path.dirname(outputPdfPath));
     const pdfDoc = await PDFDocument.create();
 
     for (const imgPath of imagePaths) {
-      if (!fs.existsSync(imgPath)) continue;
+      if (!fs.existsSync(imgPath)) {
+        throw new Error(`图片文件未找到: ${imgPath}`);
+      }
 
       let imageBytes = fs.readFileSync(imgPath);
       const ext = getFileExtension(imgPath);
-      let embeddedImage;
+      let embeddedImage = null;
 
-      // 如果格式是 webp/avif/tiff/ico/bmp 等，先用 sharp 转为 png/jpeg buffer
-      if (ext === 'png') {
+      // 优先尝试原生嵌入
+      if (ext === 'jpg' || ext === 'jpeg') {
+        try {
+          embeddedImage = await pdfDoc.embedJpg(imageBytes);
+        } catch {
+          // 如果是渐进式 JPEG 或特殊格式，通过 sharp 转为标准 PNG 嵌入
+          if (sharp) {
+            const pngBuf = await sharp(imageBytes).png().toBuffer();
+            embeddedImage = await pdfDoc.embedPng(pngBuf);
+          }
+        }
+      } else if (ext === 'png') {
         try {
           embeddedImage = await pdfDoc.embedPng(imageBytes);
         } catch {
@@ -166,27 +168,21 @@ class ImageEngine {
             embeddedImage = await pdfDoc.embedPng(pngBuf);
           }
         }
-      } else if (ext === 'jpg' || ext === 'jpeg') {
-        try {
-          embeddedImage = await pdfDoc.embedJpg(imageBytes);
-        } catch {
-          if (sharp) {
-            const jpgBuf = await sharp(imageBytes).jpeg().toBuffer();
-            embeddedImage = await pdfDoc.embedJpg(jpgBuf);
-          }
-        }
       } else {
-        if (!sharp) {
-          throw new Error(`处理 ${ext} 格式图片需要 sharp 模块`);
+        // webp, avif, bmp, tiff, svg, etc.
+        if (sharp) {
+          const pngBuf = await sharp(imgPath).png().toBuffer();
+          embeddedImage = await pdfDoc.embedPng(pngBuf);
+        } else {
+          throw new Error(`处理 ${ext} 格式图片需要 sharp 引擎`);
         }
-        const pngBuf = await sharp(imgPath).png().toBuffer();
-        embeddedImage = await pdfDoc.embedPng(pngBuf);
       }
 
-      if (!embeddedImage) continue;
+      if (!embeddedImage) {
+        throw new Error(`无法解析并嵌入图片: ${path.basename(imgPath)}`);
+      }
 
       const { width, height } = embeddedImage;
-      // 默认按图片原始比例创建单页
       const page = pdfDoc.addPage([width, height]);
       page.drawImage(embeddedImage, {
         x: 0,

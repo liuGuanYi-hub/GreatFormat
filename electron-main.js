@@ -6,10 +6,10 @@ let mainWindow;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1040,
-    height: 720,
-    minWidth: 860,
-    minHeight: 580,
+    width: 1060,
+    height: 740,
+    minWidth: 880,
+    minHeight: 600,
     backgroundColor: '#0c0a17',
     title: 'GreatFormat 太棒格式 - 疯狂钻石主题转换器',
     webPreferences: {
@@ -27,8 +27,19 @@ function createWindow() {
 function registerIpcHandlers() {
   // 转换文件
   ipcMain.handle('greatformat:convert', async (event, params) => {
-    const { inputPath, targetFormat, options = {}, outputDir } = params;
-    return await ConverterHub.convert(inputPath, targetFormat, { ...options, outputDir });
+    try {
+      const { inputPath, targetFormat, options = {}, outputDir } = params;
+      console.log(`[Main] 开始转换任务: input="${inputPath}", target="${targetFormat}", outDir="${outputDir}"`);
+      const result = await ConverterHub.convert(inputPath, targetFormat, { ...options, outputDir });
+      return { success: true, ...result };
+    } catch (err) {
+      console.error('[Main] 转换失败:', err);
+      return {
+        success: false,
+        error: err.message || '未知错误',
+        stack: err.stack
+      };
+    }
   });
 
   // 选择输出目录

@@ -33,9 +33,9 @@
 body {
   background-color: var(--bg-main);
   background-image: 
-    radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.12) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, rgba(6, 182, 212, 0.05) 0px, transparent 60%);
+    radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.18) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.15) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(6, 182, 212, 0.06) 0px, transparent 60%);
   color: var(--text-main);
   height: 100vh;
   overflow: hidden;
@@ -45,6 +45,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  position: relative;
 }
 
 /* 顶部导航 */
@@ -56,7 +57,7 @@ body {
   padding: 0 24px;
   border-bottom: 1px solid var(--border-color);
   backdrop-filter: blur(12px);
-  background: rgba(12, 10, 23, 0.6);
+  background: rgba(12, 10, 23, 0.65);
   z-index: 10;
 }
 
@@ -95,6 +96,25 @@ body {
   color: var(--text-muted);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.audio-toggle-btn {
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--primary-glow);
+  border-color: var(--border-color);
+  font-size: 0.8rem;
+  padding: 6px 12px;
+}
+
+.audio-toggle-btn.muted {
+  opacity: 0.6;
+  color: var(--text-dim);
+}
+
 .output-dir-picker {
   display: flex;
   align-items: center;
@@ -109,7 +129,7 @@ body {
 .output-dir-picker .path {
   color: var(--accent-pink);
   font-family: monospace;
-  max-width: 260px;
+  max-width: 220px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -124,7 +144,7 @@ body {
 
 /* 左侧仗助互动面板 */
 .mascot-panel {
-  width: 280px;
+  width: 290px;
   padding: 20px;
   border-right: 1px solid var(--border-color);
   display: flex;
@@ -141,58 +161,85 @@ body {
   align-items: center;
   text-align: center;
   position: relative;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
 }
 
 .avatar-wrapper {
-  width: 88px;
-  height: 88px;
+  width: 104px;
+  height: 104px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4c1d95, #be185d);
+  border: 3px solid #ec4899;
+  background: #1e1b4b;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   margin-bottom: 16px;
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+  overflow: hidden;
+  box-shadow: 0 0 24px rgba(236, 72, 153, 0.5);
+  transition: all 0.3s ease;
+}
+
+.mascot-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   transition: transform 0.3s ease;
 }
 
 .avatar-wrapper.converting {
-  animation: pulseGlow 1s infinite alternate;
+  animation: barrageGlow 0.6s infinite alternate ease-in-out;
+  border-color: #fbbf24;
 }
 
-@keyframes pulseGlow {
-  0% { transform: scale(1); box-shadow: 0 0 15px rgba(236, 72, 153, 0.6); }
-  100% { transform: scale(1.08); box-shadow: 0 0 30px rgba(139, 92, 246, 0.9); }
+.avatar-wrapper.converting .mascot-image {
+  transform: scale(1.1);
 }
 
-.character-emoji {
-  font-size: 40px;
+@keyframes barrageGlow {
+  0% { transform: scale(1) rotate(-2deg); box-shadow: 0 0 20px rgba(236, 72, 153, 0.7); }
+  100% { transform: scale(1.08) rotate(2deg); box-shadow: 0 0 35px rgba(251, 191, 36, 0.9); }
 }
 
 .character-dialog {
-  background: rgba(139, 92, 246, 0.15);
-  border: 1px solid var(--border-color);
+  background: linear-gradient(145deg, rgba(30, 26, 56, 0.9), rgba(46, 16, 77, 0.85));
+  border: 1.5px solid var(--accent-pink);
   border-radius: var(--radius-md);
-  padding: 12px;
+  padding: 14px;
   position: relative;
   margin-bottom: 16px;
   width: 100%;
+  box-shadow: 0 4px 20px rgba(236, 72, 153, 0.2);
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
 }
 
 .dialog-title {
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--accent-pink);
-  margin-bottom: 4px;
+  text-shadow: 0 0 8px rgba(236, 72, 153, 0.5);
+}
+
+.dialog-badge {
+  font-size: 0.68rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(139, 92, 246, 0.3);
+  color: var(--primary-glow);
 }
 
 .dialog-content {
-  font-size: 0.85rem;
-  line-height: 1.45;
+  font-size: 0.86rem;
+  line-height: 1.5;
   color: var(--text-main);
   transition: opacity 0.2s ease;
+  font-weight: 500;
 }
 
 .stand-stat {
@@ -211,6 +258,39 @@ body {
 .stat-desc {
   font-size: 0.72rem;
   color: var(--text-dim);
+}
+
+/* 漫画漂浮拟声词层 */
+.manga-sfx-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 15;
+}
+
+.manga-sfx {
+  position: absolute;
+  font-family: "Impact", "Arial Black", "Hiragino Sans GB", sans-serif;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #fef08a;
+  -webkit-text-stroke: 2px #ec4899;
+  text-shadow: 0 0 15px rgba(236, 72, 153, 0.9), 3px 3px 0 #000;
+  animation: floatSfx 1.4s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes floatSfx {
+  0% { opacity: 0; transform: scale(0.3) rotate(-15deg); }
+  20% { opacity: 1; transform: scale(1.2) rotate(-5deg); }
+  70% { opacity: 1; transform: scale(1) translateY(-30px) rotate(5deg); }
+  100% { opacity: 0; transform: scale(0.8) translateY(-60px); }
 }
 
 /* 右侧工作区 */
@@ -387,7 +467,12 @@ body {
 .status-ready { color: var(--text-muted); }
 .status-converting { color: var(--accent-gold); font-weight: 600; }
 .status-success { color: var(--success); font-weight: 600; }
-.status-error { color: var(--error); font-weight: 600; }
+.status-error {
+  color: var(--error);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
 
 /* 底部操作区 */
 .action-footer {
@@ -469,12 +554,12 @@ body {
 /* 抽屉与预览 */
 .preview-drawer {
   position: absolute;
-  right: -400px;
+  right: -420px;
   top: 64px;
   bottom: 0;
-  width: 380px;
-  background: var(--bg-card);
-  backdrop-filter: blur(20px);
+  width: 400px;
+  background: rgba(18, 15, 34, 0.92);
+  backdrop-filter: blur(24px);
   border-left: 1px solid var(--border-color);
   padding: 20px;
   transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);

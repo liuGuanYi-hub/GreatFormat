@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GreatFormat 太棒格式 - 疯狂钻石主题本地转换器</title>
+  <title>GreatFormat 太棒格式 - 疯狂钻石主题转换器</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -29,6 +29,12 @@
       </div>
 
       <div class="header-actions">
+        <!-- 语音音效开关 -->
+        <button class="btn btn-outline btn-sm audio-toggle-btn" id="audioToggleBtn" title="切换 JOJO 语音与战吼音效">
+          <span id="audioIcon">🔊</span>
+          <span id="audioText">JOJO 语音: 开启</span>
+        </button>
+
         <div class="output-dir-picker" id="outputDirPicker">
           <span class="label">保存目录:</span>
           <span class="path" id="savePathDisplay">原文件同级目录</span>
@@ -42,18 +48,25 @@
       <!-- 左侧：仗助与替身动态交互状态展示区 -->
       <aside class="mascot-panel">
         <div class="character-card">
+          <!-- 动态替身光环与东方仗助官方立绘头像 -->
           <div class="avatar-wrapper" id="mascotAvatar">
-            <!-- 仗助与疯狂钻石 SVG 插画徽章 -->
             <div class="character-glow"></div>
-            <div class="character-emoji" id="mascotEmoji">💎</div>
+            <img src="../assets/josuke_idle.png" id="mascotImg" class="mascot-image" alt="东方仗助" />
+            <div class="stand-aura" id="standAura"></div>
           </div>
-          <div class="character-dialog">
+
+          <!-- 漫画气泡对话框 -->
+          <div class="character-dialog" id="characterDialog">
             <div class="bubble-tail"></div>
-            <div class="dialog-title" id="mascotName">东方仗助</div>
+            <div class="dialog-header">
+              <span class="dialog-title" id="mascotName">东方仗助</span>
+              <span class="dialog-badge" id="standStatusBadge">待命中</span>
+            </div>
             <div class="dialog-content" id="mascotSpeech">
               「把需要重组的文件拖进来吧！这可真是太 Great 了！」
             </div>
           </div>
+
           <div class="stand-stat">
             <div class="stat-badge">替身：疯狂钻石 (Crazy Diamond)</div>
             <div class="stat-desc">破坏并以原子级精度修复 / 重构物质</div>
@@ -63,6 +76,9 @@
 
       <!-- 右侧：文件拖拽与转换队列管理 -->
       <section class="workspace-panel">
+        <!-- 漂浮漫画拟声词层 -->
+        <div class="manga-sfx-container" id="mangaSfxContainer"></div>
+
         <!-- 拖拽放置区域 -->
         <div class="drop-zone" id="dropZone">
           <div class="drop-content">
@@ -118,7 +134,7 @@
     <!-- 转换完成浮层提示 / 预览抽屉 -->
     <div class="preview-drawer" id="previewDrawer">
       <div class="drawer-header">
-        <h3>重组结果预览</h3>
+        <h3 id="drawerTitle">详情与预览</h3>
         <button class="btn-close" id="closeDrawerBtn">&times;</button>
       </div>
       <div class="drawer-body" id="drawerBody">
