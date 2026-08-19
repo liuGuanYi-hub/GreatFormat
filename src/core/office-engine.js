@@ -23,7 +23,7 @@ class OfficeEngine {
   static chromiumPdfRenderer = null;
 
   /**
-   * 注册由主进程提供的内置 Chromium PDF 渲染器（无需安装 Office/WPS/LibreOffice 即可输出高品质 PDF）
+   * 注册由主进程提供的内置 Chromium PDF 渲染器（无需安装 Office/WPS 即可输出标准高品质 PDF）
    * @param {Function} rendererFn 
    */
   static setChromiumPdfRenderer(rendererFn) {
@@ -32,10 +32,10 @@ class OfficeEngine {
 
   /**
    * Word (.docx / .doc) 转 PDF
-   * 多阶梯平滑转换策略：
-   * 1. 优先使用 Windows 本地已有的 MS Word / WPS Office（极速且 100% 原始版式保真）
-   * 2. 若用户电脑没有安装任何 Office，自动使用内置的 Electron 浏览器打印引擎转为标准 A4 PDF（零安装、开箱即用！）
-   * 3. 备用尝试 LibreOffice Headless
+   * 多阶梯保真转换策略：
+   * 1. 优先使用 Windows 本地 COM 自动化 (MS Word / WPS Office)，100% 原始矢量排版完美保真！
+   * 2. 若用户电脑未安装 Office/WPS，自动使用内置 Electron 浏览器打印引擎转为标准 A4 PDF（零安装开箱即用）。
+   * 3. 备用尝试 LibreOffice Headless。
    * @param {string} inputPath 
    * @param {string} outputPath 
    */
@@ -48,20 +48,21 @@ class OfficeEngine {
     const resolvedInput = path.resolve(inputPath);
     const resolvedOutput = path.resolve(outputPath);
 
-    // 1. 优先尝试 Windows 原生 COM 自动化 (MS Word / WPS)
+    // 1. 优先尝试 Windows 原生 COM 自动化 (MS Word / WPS Office)
     if (process.platform === 'win32') {
       try {
-        const psScript = `
+        // 关键点：使用 UTF-8 with BOM (\uFEFF) 确保 PowerShell 5.1 正确解析包含中文或特殊字符的完整文件路径
+        const psScript = `\uFEFF
 $inputPath = '${resolvedInput.replace(/'/g, "''")}'
 $outputPath = '${resolvedOutput.replace(/'/g, "''")}'
 
-# 尝试 MS Word
+# 1. 优先尝试 MS Word
 $word = $null
 try {
     $word = New-Object -ComObject Word.Application
     $word.Visible = $false
     $doc = $word.Documents.Open($inputPath, $false, $true)
-    $doc.SaveAs([ref]$outputPath, [ref]17)
+    $doc.ExportAsFixedFormat($outputPath, 17)
     $doc.Close($false)
     $word.Quit()
     exit 0
@@ -69,14 +70,15 @@ try {
     if ($word) { try { $word.Quit() } catch {} }
 }
 
-# 尝试 WPS 文字
+# 2. 尝试 WPS 文字 (KWPS / WPS.Application)
 $wps = $null
 try {
-    $wps = New-Object -ComObject KWPS.Application
-    if (-not $wps) { $wps = New-Object -ComObject WPS.Application }
+    $wps = New-Object -ComObject KWPS.Application -ErrorAction SilentlyContinue
+    if (-not $wps) { $wps = New-Object -ComObject WPS.Application -ErrorAction SilentlyContinue }
+    if (-not $wps) { $wps = New-Object -ComObject wps.application -ErrorAction SilentlyContinue }
     $wps.Visible = $false
     $doc = $wps.Documents.Open($inputPath, $false, $true)
-    $doc.ExportPdf($outputPath)
+    $doc.ExportAsFixedFormat($outputPath, 17)
     $doc.Close($false)
     $wps.Quit()
     exit 0
@@ -95,17 +97,17 @@ exit 1
         if (fs.existsSync(resolvedOutput)) {
           return {
             success: true,
-            engine: 'Windows COM (Word/WPS)',
+            engine: 'Windows Native COM (Word/WPS)',
             outputPath: resolvedOutput,
             size: fs.statSync(resolvedOutput).size
           };
         }
       } catch (err) {
-        console.log('[OfficeEngine] 本地 COM 转换跳过，切入内置渲染引擎:', err.message);
+        console.log('[OfficeEngine] COM 自动化转换未完成，切入内置引擎:', err.message);
       }
     }
 
-    // 2. 内置零依赖转换：使用 Mammoth 提取文档结构 + 内置 Chromium 打印生成 PDF
+    // 2. 内置零依赖转换：使用 Mammoth 结构解析 + Chromium 渲染输出 PDF
     if (this.chromiumPdfRenderer && mammoth) {
       try {
         const buffer = fs.readFileSync(resolvedInput);
