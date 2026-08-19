@@ -105,8 +105,7 @@ class ConverterHub {
         const outDir = options.outputDir || path.join(path.dirname(inputPath), `${path.basename(inputPath, '.pdf')}_images`);
         result = await PDFEngine.pdfToImages(inputPath, outDir, { format: normalizedTarget });
       } else if (normalizedTarget === 'docx') {
-        // PDF 转 Word
-        throw new Error('PDF 转 Word 需依赖高级排版解析引擎，将在下一阶段模块就绪');
+        result = await PDFEngine.pdfToDocx(inputPath, outputPath);
       } else {
         throw new Error(`暂不支持从 PDF 转换至 ${normalizedTarget}`);
       }

@@ -113,13 +113,13 @@ document.addEventListener('DOMContentLoaded', () => {
     mascotAvatar.classList.remove('converting');
     switch (state) {
       case 'idle':
-        mascotImg.src = '../assets/josuke_idle.png';
+        mascotImg.src = '../assets/josuke_fullbody_official.png';
         standStatusBadge.textContent = '待命中';
         standStatusBadge.style.background = 'rgba(139, 92, 246, 0.3)';
         mascotSpeech.innerText = customText || JOJO_LINES.IDLE.text;
         break;
       case 'dragover':
-        mascotImg.src = '../assets/josuke_action.png';
+        mascotImg.src = '../assets/josuke_fullbody_official.png';
         standStatusBadge.textContent = '替身出击';
         standStatusBadge.style.background = 'rgba(236, 72, 153, 0.5)';
         mascotSpeech.innerText = JOJO_LINES.DRAG.text;
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       case 'converting':
         mascotAvatar.classList.add('converting');
-        mascotImg.src = '../assets/josuke_action.png';
+        mascotImg.src = '../assets/josuke_fullbody_official.png';
         standStatusBadge.textContent = 'ドララララ！';
         standStatusBadge.style.background = 'rgba(251, 191, 36, 0.7)';
         mascotSpeech.innerText = customText || JOJO_LINES.CONVERTING.text;
@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
         playAudioFile('dorarara.mp3');
         break;
       case 'success':
-        mascotImg.src = '../assets/josuke_success.png';
+        mascotImg.src = '../assets/josuke_fullbody_official.png';
         standStatusBadge.textContent = 'グレート！';
         standStatusBadge.style.background = 'rgba(16, 185, 129, 0.6)';
         mascotSpeech.innerText = customText || JOJO_LINES.SUCCESS.text;
@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
         spawnMangaSfx('グレート！');
         break;
       case 'error':
-        mascotImg.src = '../assets/josuke_action.png';
+        mascotImg.src = '../assets/josuke_fullbody_official.png';
         standStatusBadge.textContent = '重組失敗';
         standStatusBadge.style.background = 'rgba(239, 68, 68, 0.7)';
         mascotSpeech.innerText = customText || JOJO_LINES.ERROR.text;
