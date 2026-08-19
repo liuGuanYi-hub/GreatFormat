@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { exec, execSync } = require('child_process');
+const { exec } = require('child_process');
 const util = require('util');
 const execAsync = util.promisify(exec);
 const { ensureDirSync } = require('./utils');
@@ -20,10 +20,22 @@ try {
 }
 
 class OfficeEngine {
+  static chromiumPdfRenderer = null;
+
+  /**
+   * 注册由主进程提供的内置 Chromium PDF 渲染器（无需安装 Office/WPS/LibreOffice 即可输出高品质 PDF）
+   * @param {Function} rendererFn 
+   */
+  static setChromiumPdfRenderer(rendererFn) {
+    this.chromiumPdfRenderer = rendererFn;
+  }
+
   /**
    * Word (.docx / .doc) 转 PDF
-   * 优先使用 Windows 本地 COM 自动化（MS Word / WPS Office），排版 100% 保真且毫秒级极速完成！
-   * 备用回退到 LibreOffice headless。
+   * 多阶梯平滑转换策略：
+   * 1. 优先使用 Windows 本地已有的 MS Word / WPS Office（极速且 100% 原始版式保真）
+   * 2. 若用户电脑没有安装任何 Office，自动使用内置的 Electron 浏览器打印引擎转为标准 A4 PDF（零安装、开箱即用！）
+   * 3. 备用尝试 LibreOffice Headless
    * @param {string} inputPath 
    * @param {string} outputPath 
    */
@@ -36,7 +48,7 @@ class OfficeEngine {
     const resolvedInput = path.resolve(inputPath);
     const resolvedOutput = path.resolve(outputPath);
 
-    // 1. 尝试 Windows 原生 COM 自动化 (MS Word / WPS)
+    // 1. 优先尝试 Windows 原生 COM 自动化 (MS Word / WPS)
     if (process.platform === 'win32') {
       try {
         const psScript = `
@@ -49,7 +61,6 @@ try {
     $word = New-Object -ComObject Word.Application
     $word.Visible = $false
     $doc = $word.Documents.Open($inputPath, $false, $true)
-    # 17 represents wdExportFormatPDF
     $doc.SaveAs([ref]$outputPath, [ref]17)
     $doc.Close($false)
     $word.Quit()
@@ -90,11 +101,55 @@ exit 1
           };
         }
       } catch (err) {
-        console.log('[OfficeEngine] 本地 COM 转换未完成，尝试 LibreOffice 回退:', err.message);
+        console.log('[OfficeEngine] 本地 COM 转换跳过，切入内置渲染引擎:', err.message);
       }
     }
 
-    // 2. 回退尝试 LibreOffice Headless
+    // 2. 内置零依赖转换：使用 Mammoth 提取文档结构 + 内置 Chromium 打印生成 PDF
+    if (this.chromiumPdfRenderer && mammoth) {
+      try {
+        const buffer = fs.readFileSync(resolvedInput);
+        const result = await mammoth.convertToHtml({ buffer });
+        const styledHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    @page { size: A4; margin: 20mm 15mm 20mm 15mm; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 11pt;
+      line-height: 1.6;
+      color: #111827;
+      margin: 0;
+      padding: 0;
+    }
+    h1 { font-size: 20pt; margin-top: 18pt; margin-bottom: 8pt; color: #111827; font-weight: 700; }
+    h2 { font-size: 15pt; margin-top: 14pt; margin-bottom: 6pt; color: #1f2937; font-weight: 600; }
+    h3 { font-size: 13pt; margin-top: 12pt; margin-bottom: 4pt; color: #374151; font-weight: 600; }
+    p { margin-top: 0; margin-bottom: 8pt; text-align: justify; }
+    table { width: 100%; border-collapse: collapse; margin: 12pt 0; }
+    th, td { border: 1px solid #d1d5db; padding: 6pt 8pt; font-size: 10pt; }
+    th { background-color: #f3f4f6; font-weight: 600; }
+    img { max-width: 100%; height: auto; display: block; margin: 8pt auto; }
+    ul, ol { margin-top: 0; margin-bottom: 8pt; padding-left: 20pt; }
+    li { margin-bottom: 3pt; }
+    blockquote { border-left: 3px solid #9ca3af; margin: 8pt 0; padding-left: 10pt; color: #4b5563; }
+  </style>
+</head>
+<body>
+  ${result.value}
+</body>
+</html>
+`;
+        return await this.chromiumPdfRenderer(styledHtml, resolvedOutput);
+      } catch (err) {
+        console.log('[OfficeEngine] 内置 Chromium 渲染发生异常:', err.message);
+      }
+    }
+
+    // 3. 回退尝试 LibreOffice Headless
     try {
       const outDir = path.dirname(resolvedOutput);
       const cmd = `soffice --headless --convert-to pdf --outdir "${outDir}" "${resolvedInput}"`;
@@ -117,14 +172,11 @@ exit 1
       console.log('[OfficeEngine] LibreOffice 未安装或调用失败:', err.message);
     }
 
-    throw new Error('Word 转 PDF 失败：请确保系统已安装 Microsoft Office、WPS 或 LibreOffice');
+    throw new Error('Word 转 PDF 失败：未能通过本地引擎生成 PDF，请检查文件是否损坏');
   }
 
   /**
-   * Word (.docx) 转 Markdown / HTML
-   * @param {string} inputPath 
-   * @param {string} outputPath 
-   * @param {'markdown' | 'html' | 'txt'} format 
+   * Word (.docx) 转 Markdown / HTML / TXT
    */
   static async docxToTextOrHtml(inputPath, outputPath, format = 'markdown') {
     if (!mammoth) {
@@ -155,8 +207,6 @@ exit 1
 
   /**
    * 纯文本 / Markdown 转 Word (.docx)
-   * @param {string} inputPath 
-   * @param {string} outputPath 
    */
   static async textToDocx(inputPath, outputPath) {
     if (!docx) {

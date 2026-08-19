@@ -1,6 +1,8 @@
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const ConverterHub = require('./src/core/converter-hub');
+const OfficeEngine = require('./src/core/office-engine');
 
 let mainWindow;
 
@@ -23,15 +25,55 @@ function createWindow() {
   mainWindow.setMenuBarVisibility(false);
 }
 
+// 使用内置 Chromium 打印引擎将 HTML 无损转为高品质 PDF (无需安装任何 Office 软件)
+async function renderHtmlToPdf(htmlContent, outputPdfPath) {
+  const printWin = new BrowserWindow({
+    show: false,
+    width: 1024,
+    height: 1400,
+    webPreferences: {
+      nodeIntegration: false
+    }
+  });
+
+  try {
+    await printWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
+    const pdfBuffer = await printWin.webContents.printToPDF({
+      printBackground: true,
+      pageSize: 'A4',
+      margins: {
+        top: 0.4,
+        bottom: 0.4,
+        left: 0.4,
+        right: 0.4
+      }
+    });
+    fs.writeFileSync(outputPdfPath, pdfBuffer);
+    return {
+      success: true,
+      engine: 'Built-in Electron Engine',
+      outputPath: outputPdfPath,
+      size: pdfBuffer.length
+    };
+  } finally {
+    if (!printWin.isDestroyed()) {
+      printWin.destroy();
+    }
+  }
+}
+
 // 注册 IPC 通信事件
 function registerIpcHandlers() {
+  // 设置 Office 引擎的内置 PDF 渲染器回调
+  OfficeEngine.setChromiumPdfRenderer(renderHtmlToPdf);
+
   // 转换文件
   ipcMain.handle('greatformat:convert', async (event, params) => {
     try {
       const { inputPath, targetFormat, options = {}, outputDir } = params;
       console.log(`[Main] [Converting] input="${inputPath}", target="${targetFormat}", outDir="${outputDir || 'default'}"`);
       const result = await ConverterHub.convert(inputPath, targetFormat, { ...options, outputDir });
-      console.log(`[Main] [Success] Great! Reassembly completed.`);
+      console.log(`[Main] [Success] Great! Reassembly completed via ${result.engine || 'native engine'}.`);
       return { success: true, ...result };
     } catch (err) {
       console.error(`[Main] [Error] Failed: ${err.message}`);

@@ -100,23 +100,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 合成连打重击音效
+  // 高密度疯狂钻石重拳连打打击音效 (DORARARA Punch Barrage)
   function playSynthesizedBarrage() {
     const ctx = getAudioContext();
     if (!ctx) return;
     if (ctx.state === 'suspended') ctx.resume();
     const now = ctx.currentTime;
+
+    // 1. 低频重击瞬态 (Sub-punch impact)
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(220, now);
-    osc.frequency.exponentialRampToValueAtTime(35, now + 0.15);
-    gain.gain.setValueAtTime(0.35, now);
-    gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+    const pitch = 140 + (Math.random() * 40 - 20); // 每次出拳微小音调变奏
+    osc.frequency.setValueAtTime(pitch, now);
+    osc.frequency.exponentialRampToValueAtTime(30, now + 0.08);
+
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start(now);
-    osc.stop(now + 0.15);
+    osc.stop(now + 0.08);
+
+    // 2. 拳风撕裂脆响 (Fist crack)
+    const crackOsc = ctx.createOscillator();
+    const crackGain = ctx.createGain();
+    crackOsc.type = 'triangle';
+    crackOsc.frequency.setValueAtTime(360 + Math.random() * 80, now);
+    crackOsc.frequency.exponentialRampToValueAtTime(60, now + 0.05);
+
+    crackGain.gain.setValueAtTime(0.25, now);
+    crackGain.gain.linearRampToValueAtTime(0.01, now + 0.05);
+
+    crackOsc.connect(crackGain);
+    crackGain.connect(ctx.destination);
+    crackOsc.start(now);
+    crackOsc.stop(now + 0.05);
   }
 
   // 合成胜利和弦音效
@@ -479,10 +499,13 @@ document.addEventListener('DOMContentLoaded', () => {
     startConvertBtn.disabled = true;
     footerStatusText.textContent = 'ドララララ！疯狂钻石正在高速原子重组中...';
 
+    // 极速机关枪连打拳击打击音效与拟声词 (DORARARA Barrage)
     const sfxInterval = setInterval(() => {
       playSynthesizedBarrage();
-      spawnMangaSfx(Math.random() > 0.5 ? 'ドラァ！' : 'ドラララ！');
-    }, 260);
+      if (Math.random() > 0.6) {
+        spawnMangaSfx(Math.random() > 0.5 ? 'ドラァ！' : 'ドラララ！');
+      }
+    }, 110);
 
     let successCount = 0;
     let failCount = 0;
