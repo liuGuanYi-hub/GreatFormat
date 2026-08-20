@@ -1,62 +1,86 @@
 const { execSync } = require('child_process');
-const fs = require('fs');
 const path = require('path');
+const fs = require('fs');
 
 const docxPath = path.resolve('用于测试的文件夹-不用git/曾子丹_AI应用开发_投递版.docx');
 const outPdf = path.resolve('用于测试的文件夹-不用git/曾子丹_AI应用开发_投递版.pdf');
 
-console.log('Docx path exists:', fs.existsSync(docxPath));
+console.log('Testing docx path:', docxPath);
+console.log('Docx exists:', fs.existsSync(docxPath));
 
-// 使用 UTF-8 with BOM 写入，确保 Windows PowerShell 5.1 正确解析中文字符路径
-const psCode = `\uFEFF
-$inputPath = '${docxPath.replace(/'/g, "''")}'
-$outputPath = '${outPdf.replace(/'/g, "''")}'
+// 生成 vbs 脚本
+const vbsContent = `
+On Error Resume Next
 
-Write-Host "Real Input Path: $inputPath"
+Dim docxPath, outPdf
+docxPath = "${docxPath.replace(/\\/g, '\\\\')}"
+outPdf = "${outPdf.replace(/\\/g, '\\\\')}"
 
-# 1. 尝试 Word.Application
-$word = $null
-try {
-    $word = New-Object -ComObject Word.Application
-    $word.Visible = $false
-    $doc = $word.Documents.Open($inputPath, $false, $true)
-    $doc.ExportAsFixedFormat($outputPath, 17)
-    $doc.Close($false)
-    $word.Quit()
-    Write-Host "SUCCESS: Converted via Microsoft Word"
-    exit 0
-} catch {
-    Write-Host "Word Exception:" $_.Exception.Message
-    if ($word) { try { $word.Quit() } catch {} }
-}
+Dim word, doc, success
+success = False
 
-# 2. 尝试 WPS COM
-$wps = $null
-try {
-    $wps = New-Object -ComObject KWPS.Application -ErrorAction SilentlyContinue
-    if (-not $wps) { $wps = New-Object -ComObject WPS.Application }
-    if (-not $wps) { $wps = New-Object -ComObject wps.application }
-    $wps.Visible = $false
-    $doc = $wps.Documents.Open($inputPath, $false, $true)
-    $doc.ExportAsFixedFormat($outputPath, 17)
-    $doc.Close($false)
-    $wps.Quit()
-    Write-Host "SUCCESS: Converted via WPS"
-    exit 0
-} catch {
-    Write-Host "WPS Exception:" $_.Exception.Message
-    if ($wps) { try { $wps.Quit() } catch {} }
-}
+' 1. 尝试 Microsoft Word
+Set word = CreateObject("Word.Application")
+If Err.Number = 0 And Not word Is Nothing Then
+    word.Visible = False
+    word.DisplayAlerts = False
+    Set doc = word.Documents.Open(docxPath, False, True)
+    If Err.Number = 0 And Not doc Is Nothing Then
+        doc.ExportAsFixedFormat outPdf, 17
+        doc.Close False
+        word.Quit False
+        If Err.Number = 0 Then
+            WScript.Echo "SUCCESS_WORD"
+            WScript.Quit 0
+        End If
+    End If
+    word.Quit False
+End If
 
-exit 1
+Err.Clear
+
+' 2. 尝试 WPS 文字 (KWPS / WPS)
+Dim wps
+Set wps = CreateObject("KWPS.Application")
+If Err.Number <> 0 Or wps Is Nothing Then
+    Err.Clear
+    Set wps = CreateObject("WPS.Application")
+End If
+
+If Err.Number = 0 And Not wps Is Nothing Then
+    wps.Visible = False
+    wps.DisplayAlerts = False
+    Set doc = wps.Documents.Open(docxPath, False, True)
+    If Err.Number = 0 And Not doc Is Nothing Then
+        doc.ExportAsFixedFormat outPdf, 17
+        doc.Close False
+        wps.Quit False
+        If Err.Number = 0 Then
+            WScript.Echo "SUCCESS_WPS"
+            WScript.Quit 0
+        End If
+    End If
+    wps.Quit False
+End If
+
+WScript.Echo "FAIL: " & Err.Description
+WScript.Quit 1
 `;
 
-fs.writeFileSync('test_bom.ps1', psCode, 'utf8');
+// 写入 UTF-16LE 或者带有 GBK 兼容 / utf8 的 vbs
+// VBScript 默认读取当前 ANSI 编码，或者我们用 UTF-16LE 写入
+const tempVbs = path.join(path.dirname(outPdf), `temp_convert_${Date.now()}.vbs`);
+fs.writeFileSync(tempVbs, Buffer.from('\uFEFF' + vbsContent, 'utf16le'));
+
 try {
-  const res = execSync('powershell -NoProfile -ExecutionPolicy Bypass -File test_bom.ps1', { encoding: 'utf8' });
-  console.log('Result:\n', res);
+  const res = execSync(`cscript //Nologo "${tempVbs}"`, { encoding: 'utf8' });
+  console.log('Result Output:\n', res);
+  console.log('PDF Exists after convert:', fs.existsSync(outPdf));
+  if (fs.existsSync(outPdf)) {
+    console.log('Output PDF size:', fs.statSync(outPdf).size);
+  }
 } catch (e) {
-  console.error('Exec error:', e.stdout || e.message);
+  console.error('Execution Failed:\n', e.stdout || e.message);
 } finally {
-  if (fs.existsSync('test_bom.ps1')) fs.unlinkSync('test_bom.ps1');
+  if (fs.existsSync(tempVbs)) fs.unlinkSync(tempVbs);
 }

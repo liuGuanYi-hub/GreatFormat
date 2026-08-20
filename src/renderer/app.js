@@ -1,7 +1,8 @@
-// GreatFormat 渲染层逻辑 (东方仗助与疯狂钻石 日语原声台词 & 拳击打击音效系统)
+// GreatFormat 渲染层逻辑 (东方仗助与疯狂钻石 日语原声台词 & 音效互动系统)
 document.addEventListener('DOMContentLoaded', () => {
   const dropZone = document.getElementById('dropZone');
   const fileInput = document.getElementById('fileInput');
+  const queueSection = document.getElementById('queueSection');
   const taskList = document.getElementById('taskList');
   const queueHeader = document.getElementById('queueHeader');
   const actionFooter = document.getElementById('actionFooter');
@@ -34,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let customSaveDir = null;
   let audioEnabled = true;
 
-  // 格式对应关系
+  // 支持格式映射表
   const FORMAT_OPTIONS = {
     png: ['pdf', 'jpg', 'webp', 'avif', 'ico'],
     jpg: ['pdf', 'png', 'webp', 'avif', 'ico'],
@@ -52,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     txt: ['docx', 'pdf']
   };
 
-  // JOJO 日语台词库
+  // JOJO 东方仗助日语台词库
   const JOJO_LINES = {
     IDLE: {
       text: '「ファイルをドラッグ＆ドロップしてくれ！グレートに行こうぜ！」\n（把需要重组的文件拖进来吧！这可真是太 Great 了！）'
@@ -61,13 +62,13 @@ document.addEventListener('DOMContentLoaded', () => {
       text: '「クレイジー・ダイヤモンド！スタンド出現！」\n（替身出击！疯狂钻石准备拆解与重构！）'
     },
     CONVERTING: {
-      text: '「ドララララララララララララッ！！DORARARARA！！」\n（ドラララ！疯狂钻石正在极速原子重组中！）'
+      text: '「ドララララララララララララッ！！DORARARARA！！」\n（ドラララ！疯狂钻石正在高速原子重组中！）'
     },
     SUCCESS: {
       text: '「グレートですよ、こいつはァ！完璧に直ったぜ！」\n（这可真是太 Great 了！所有文件已完美重构完毕！）'
     },
     ERROR: {
-      text: '「な、何だとォ！？この仗助サマの髪型をケナしたなァ！？」\n（可恶！竟然遇到了阻碍！点击查看详细排查信息）'
+      text: '「な、何だとォ！？この仗助サマの髪型をケナしたなァ！？」\n（可恶！遇到了阻碍！点击查看详细排查信息）'
     }
   };
 
@@ -77,9 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function playAudioFile(fileName, fadeInMs = 100) {
     if (!audioEnabled) return null;
     try {
-      // 若当前有正在播放的语音，先执行 160ms 快速淡出平滑过渡
       stopVoiceAudio(160);
-
       const audio = new Audio(`../assets/audio/${fileName}`);
       audio.volume = 0.0;
       activeVoiceAudio = audio;
@@ -103,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 停止语音 (带平滑淡出渐变，避免截断破音)
+  // 停止语音 (带平滑淡出渐变)
   function stopVoiceAudio(fadeOutMs = 200) {
     if (activeVoiceAudio) {
       const targetAudio = activeVoiceAudio;
@@ -126,104 +125,113 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 连续拳击音效播放器
-  function playPunchSound() {
-    if (!audioEnabled) return;
-    try {
-      const audio = new Audio('../assets/audio/punch.wav');
-      audio.volume = 0.85;
-      audio.playbackRate = 0.95 + Math.random() * 0.2; // 随机轻微变化音调
-      audio.play().catch(() => {});
-    } catch {}
-  }
-
   // 漫画拟声词漂浮特效
   function spawnMangaSfx(text) {
+    if (!mangaSfxContainer) return;
     const sfx = document.createElement('div');
     sfx.className = 'manga-sfx';
     sfx.textContent = text;
-    sfx.style.left = Math.random() * 55 + 25 + '%';
-    sfx.style.top = Math.random() * 45 + 25 + '%';
-    sfx.style.fontSize = Math.random() * 16 + 32 + 'px';
+    sfx.style.left = Math.random() * 50 + 25 + '%';
+    sfx.style.top = Math.random() * 45 + 20 + '%';
+    sfx.style.fontSize = Math.random() * 12 + 28 + 'px';
     mangaSfxContainer.appendChild(sfx);
-    setTimeout(() => sfx.remove(), 1400);
+    setTimeout(() => sfx.remove(), 1300);
   }
 
   // 东方仗助情绪与立绘状态机
   function setMascotState(state, customText = '') {
+    if (!mascotAvatar || !mascotImg) return;
     mascotAvatar.classList.remove('converting');
+
     switch (state) {
       case 'idle':
         mascotImg.src = '../assets/josuke_fullbody_official.png';
-        standStatusBadge.textContent = '待命中';
-        standStatusBadge.style.background = 'rgba(139, 92, 246, 0.3)';
-        mascotSpeech.innerText = customText || JOJO_LINES.IDLE.text;
+        if (standStatusBadge) {
+          standStatusBadge.textContent = '待命中';
+          standStatusBadge.style.background = '#af52de';
+        }
+        if (mascotSpeech) mascotSpeech.innerText = customText || JOJO_LINES.IDLE.text;
         break;
       case 'dragover':
         mascotImg.src = '../assets/josuke_fullbody_official.png';
-        standStatusBadge.textContent = '替身出击';
-        standStatusBadge.style.background = 'rgba(236, 72, 153, 0.5)';
-        mascotSpeech.innerText = JOJO_LINES.DRAG.text;
+        if (standStatusBadge) {
+          standStatusBadge.textContent = '替身出击';
+          standStatusBadge.style.background = '#ff2d55';
+        }
+        if (mascotSpeech) mascotSpeech.innerText = JOJO_LINES.DRAG.text;
         spawnMangaSfx('ゴゴゴゴ');
         break;
       case 'converting':
         stopVoiceAudio();
         mascotAvatar.classList.add('converting');
         mascotImg.src = '../assets/josuke_fullbody_official.png';
-        standStatusBadge.textContent = 'ドララララ！';
-        standStatusBadge.style.background = 'rgba(251, 191, 36, 0.7)';
-        mascotSpeech.innerText = customText || JOJO_LINES.CONVERTING.text;
-        // 播放东方仗助原声拳击战吼
+        if (standStatusBadge) {
+          standStatusBadge.textContent = 'ドララララ！';
+          standStatusBadge.style.background = '#fbbf24';
+          standStatusBadge.style.color = '#111827';
+        }
+        if (mascotSpeech) mascotSpeech.innerText = customText || JOJO_LINES.CONVERTING.text;
         playAudioFile('dorarara.mp3');
         break;
       case 'success':
         stopVoiceAudio();
         mascotImg.src = '../assets/josuke_fullbody_official.png';
-        standStatusBadge.textContent = 'グレート！';
-        standStatusBadge.style.background = 'rgba(16, 185, 129, 0.6)';
-        mascotSpeech.innerText = customText || JOJO_LINES.SUCCESS.text;
-        // 播放东方仗助原声 "グレートですよ、こいつはァ！"
+        if (standStatusBadge) {
+          standStatusBadge.textContent = 'グレート！';
+          standStatusBadge.style.background = '#34c759';
+          standStatusBadge.style.color = '#ffffff';
+        }
+        if (mascotSpeech) mascotSpeech.innerText = customText || JOJO_LINES.SUCCESS.text;
         playAudioFile('great.mp3');
         spawnMangaSfx('グレート！');
         break;
       case 'error':
         stopVoiceAudio();
         mascotImg.src = '../assets/josuke_fullbody_official.png';
-        standStatusBadge.textContent = '重組失敗';
-        standStatusBadge.style.background = 'rgba(239, 68, 68, 0.7)';
-        mascotSpeech.innerText = customText || JOJO_LINES.ERROR.text;
+        if (standStatusBadge) {
+          standStatusBadge.textContent = '重組失敗';
+          standStatusBadge.style.background = '#ff3b30';
+          standStatusBadge.style.color = '#ffffff';
+        }
+        if (mascotSpeech) mascotSpeech.innerText = customText || JOJO_LINES.ERROR.text;
         spawnMangaSfx('ドドドド');
         break;
     }
   }
 
-  // 语音开关
-  audioToggleBtn.addEventListener('click', () => {
-    audioEnabled = !audioEnabled;
-    if (audioEnabled) {
-      audioIcon.textContent = '🔊';
-      audioText.textContent = 'JOJO 语音: 开启';
-      audioToggleBtn.classList.remove('muted');
-      playAudioFile('great.mp3');
-    } else {
-      audioIcon.textContent = '🔇';
-      audioText.textContent = 'JOJO 语音: 关闭';
-      audioToggleBtn.classList.add('muted');
-    }
-  });
+  // 语音音效开关
+  if (audioToggleBtn) {
+    audioToggleBtn.addEventListener('click', () => {
+      audioEnabled = !audioEnabled;
+      if (audioEnabled) {
+        audioIcon.textContent = '🔊';
+        audioText.textContent = 'JOJO 原声: 开';
+        audioToggleBtn.classList.remove('muted');
+        playAudioFile('great.mp3');
+      } else {
+        audioIcon.textContent = '🔇';
+        audioText.textContent = 'JOJO 原声: 关';
+        audioToggleBtn.classList.add('muted');
+        stopVoiceAudio();
+      }
+    });
+  }
 
+  // 字节格式化
   function formatSize(bytes) {
-    if (!bytes) return '0 B';
+    if (!bytes || bytes === 0) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
   }
 
+  // 获取小写扩展名
   function getExt(filePath) {
     return (filePath.split('.').pop() || '').toLowerCase();
   }
 
+  // 获取文件路径
   function resolveFilePath(file) {
     if (window.electronAPI?.getPathForFile) {
       const p = window.electronAPI.getPathForFile(file);
@@ -232,17 +240,27 @@ document.addEventListener('DOMContentLoaded', () => {
     return file.path || file.name;
   }
 
+  // 获取扩展名徽标色彩分类
+  function getBadgeClass(ext) {
+    if (ext === 'pdf') return 'badge-pdf';
+    if (['docx', 'doc'].includes(ext)) return 'badge-docx';
+    if (['png', 'jpg', 'jpeg', 'webp', 'ico', 'avif', 'bmp', 'tiff', 'svg'].includes(ext)) return 'badge-png';
+    if (['md', 'txt'].includes(ext)) return 'badge-md';
+    return 'badge-default';
+  }
+
+  // 添加文件到队列
   function addFiles(files) {
     let addedCount = 0;
     for (const file of files) {
       const realPath = resolveFilePath(file);
       const ext = getExt(realPath || file.name);
       const availableTargets = FORMAT_OPTIONS[ext] || ['pdf'];
-      
+
       if (tasks.some(t => t.path === realPath)) continue;
 
       tasks.push({
-        id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
         file,
         name: file.name,
         path: realPath,
@@ -264,19 +282,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // 渲染任务列表
   function renderTasks() {
     taskList.innerHTML = '';
     taskCountEl.textContent = tasks.length;
 
     if (tasks.length === 0) {
-      queueHeader.style.display = 'none';
+      if (queueSection) queueSection.style.display = 'none';
+      if (queueHeader) queueHeader.style.display = 'none';
       actionFooter.style.display = 'none';
       globalProgressWrapper.style.display = 'none';
       setMascotState('idle');
       return;
     }
 
-    queueHeader.style.display = 'flex';
+    if (queueSection) queueSection.style.display = 'flex';
+    if (queueHeader) queueHeader.style.display = 'flex';
     actionFooter.style.display = 'flex';
 
     tasks.forEach((task) => {
@@ -284,47 +305,63 @@ document.addEventListener('DOMContentLoaded', () => {
       item.className = 'task-item';
 
       const selectOptions = task.availableTargets
-        .map(t => `<option value="${t}" ${t === task.target ? 'selected' : ''}>.${t.toUpperCase()}</option>`)
+        .map(t => `<option value="${t}" ${t === task.target ? 'selected' : ''}>转为 .${t.toUpperCase()}</option>`)
         .join('');
 
       let statusBadge = `<span class="task-status status-ready">待就绪</span>`;
       if (task.status === 'converting') {
-        statusBadge = `<span class="task-status status-converting">⚡ 重构中...</span>`;
+        statusBadge = `<span class="task-status status-converting"><span class="status-spinner"></span> 重构中...</span>`;
       } else if (task.status === 'success') {
-        statusBadge = `<span class="task-status status-success">✓ 成功</span>`;
+        statusBadge = `<span class="task-status status-success">✓ 重构完成</span>`;
       } else if (task.status === 'error') {
-        statusBadge = `<span class="task-status status-error error-badge-btn" data-id="${task.id}" title="点击查看详细失败原因">✗ 失败 (点击排查)</span>`;
+        statusBadge = `<span class="task-status status-error error-badge-btn" data-id="${task.id}" title="点击查看详细失败原因">✕ 重组受阻 (排查)</span>`;
       }
+
+      const badgeClass = getBadgeClass(task.ext);
 
       item.innerHTML = `
         <div class="task-info">
-          <div class="file-badge">${task.ext}</div>
+          <div class="file-badge ${badgeClass}">${task.ext}</div>
           <div class="file-detail">
             <div class="file-name" title="${task.path}">${task.name}</div>
-            <div class="file-size">${formatSize(task.size)} · <span style="font-family: monospace; opacity: 0.8;">${task.path}</span></div>
+            <div class="file-meta-row">
+              <span class="file-size">${formatSize(task.size)}</span>
+              <span>·</span>
+              <span class="file-path-sub" title="${task.path}">${task.path}</span>
+            </div>
           </div>
         </div>
         <div class="task-actions">
-          <select class="select-box target-select" data-id="${task.id}" ${task.status === 'converting' ? 'disabled' : ''}>
+          <select class="apple-select target-select" data-id="${task.id}" ${task.status === 'converting' ? 'disabled' : ''}>
             ${selectOptions}
           </select>
           ${statusBadge}
-          ${task.status === 'success' ? `<button class="btn btn-outline btn-sm preview-btn" data-id="${task.id}">查看结果</button>` : ''}
-          <button class="btn btn-ghost btn-sm remove-btn" data-id="${task.id}" ${task.status === 'converting' ? 'disabled' : ''}>&times;</button>
+          ${task.status === 'success' ? `<button class="btn btn-secondary btn-sm preview-btn" data-id="${task.id}">查看结果</button>` : ''}
+          <button class="btn btn-icon-only remove-btn" data-id="${task.id}" title="移除此项目" ${task.status === 'converting' ? 'disabled' : ''}>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
       `;
 
       taskList.appendChild(item);
     });
 
+    // 绑定项目移除事件
     document.querySelectorAll('.remove-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const id = e.target.getAttribute('data-id');
-        tasks = tasks.filter(t => t.id !== id);
-        renderTasks();
+        const targetBtn = e.target.closest('.remove-btn');
+        const id = targetBtn?.getAttribute('data-id');
+        if (id) {
+          tasks = tasks.filter(t => t.id !== id);
+          renderTasks();
+        }
       });
     });
 
+    // 绑定格式切换
     document.querySelectorAll('.target-select').forEach(sel => {
       sel.addEventListener('change', (e) => {
         const id = e.target.getAttribute('data-id');
@@ -333,41 +370,47 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
+    // 绑定查看结果
     document.querySelectorAll('.preview-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = e.target.getAttribute('data-id');
         const task = tasks.find(t => t.id === id);
-        if (task && task.outputPath) openPreview(task);
+        if (task && task.outputPath) openPreviewModal(task);
       });
     });
 
+    // 绑定错误排查弹窗
     document.querySelectorAll('.error-badge-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = e.target.getAttribute('data-id');
         const task = tasks.find(t => t.id === id);
-        if (task) openErrorDrawer(task);
+        if (task) openErrorModal(task);
       });
     });
   }
 
-  function openPreview(task) {
-    drawerTitle.textContent = '重组结果预览';
+  // 打开成功预览弹窗
+  function openPreviewModal(task) {
+    drawerTitle.textContent = '原子重组结果预览';
     drawerBody.innerHTML = `
-      <div style="padding: 14px; background: rgba(0,0,0,0.3); border-radius: 8px; margin-bottom: 14px; border: 1px solid rgba(139,92,246,0.3);">
-        <p style="font-size: 0.85rem; color: #a78bfa; margin-bottom: 6px;"><strong>原文件:</strong> ${task.name}</p>
-        <p style="font-size: 0.85rem; color: #ec4899; word-break: break-all; margin-bottom: 6px;"><strong>输出路径:</strong> ${task.outputPath}</p>
-        <p style="font-size: 0.78rem; color: #10b981;">✓ 状态: 原子重构成功 (100% 保真还原)</p>
+      <div class="modal-box">
+        <div class="modal-box-row"><span class="modal-box-label">源文件:</span> ${task.name}</div>
+        <div class="modal-box-row"><span class="modal-box-label">输出文件:</span> ${task.outputPath}</div>
+        <div class="modal-box-row" style="color: var(--apple-green); font-weight: 500; margin-top: 4px;">✓ 状态: 原子重构成功 (100% 原始矢量保真)</div>
       </div>
-      <button class="btn btn-primary btn-sm" id="openFileBtn" style="width: 100%; margin-bottom: 10px;">打开转换后文件</button>
-      <button class="btn btn-outline btn-sm" id="openFolderBtn" style="width: 100%;">打开所在文件夹</button>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="modalOpenFileBtn">打开转换后文件</button>
+        <button class="btn btn-secondary" id="modalOpenFolderBtn">在所在文件夹中显示</button>
+      </div>
     `;
 
-    document.getElementById('openFileBtn')?.addEventListener('click', async () => {
+    document.getElementById('modalOpenFileBtn')?.addEventListener('click', async () => {
       if (window.electronAPI?.openPath) {
         await window.electronAPI.openPath(task.outputPath);
       }
     });
-    document.getElementById('openFolderBtn')?.addEventListener('click', async () => {
+
+    document.getElementById('modalOpenFolderBtn')?.addEventListener('click', async () => {
       if (window.electronAPI?.showItemInFolder) {
         await window.electronAPI.showItemInFolder(task.outputPath);
       }
@@ -376,32 +419,50 @@ document.addEventListener('DOMContentLoaded', () => {
     previewDrawer.classList.add('open');
   }
 
-  function openErrorDrawer(task) {
+  // 打开错误弹窗
+  function openErrorModal(task) {
     drawerTitle.textContent = '💥 错误排查详情';
     drawerBody.innerHTML = `
-      <div style="padding: 14px; background: rgba(239,68,68,0.15); border-radius: 8px; margin-bottom: 14px; border: 1px solid rgba(239,68,68,0.4);">
-        <p style="font-size: 0.85rem; color: #fca5a5; margin-bottom: 6px;"><strong>目标文件:</strong> ${task.name}</p>
-        <p style="font-size: 0.85rem; color: #f87171; word-break: break-all; margin-bottom: 6px;"><strong>源路径:</strong> ${task.path}</p>
-        <p style="font-size: 0.88rem; color: #ef4444; font-weight: bold; margin-top: 8px;"><strong>错误原因:</strong></p>
-        <pre style="margin-top: 6px; padding: 10px; background: #0c0a17; border-radius: 6px; color: #fca5a5; font-size: 0.78rem; overflow-x: auto; white-space: pre-wrap;">${task.errorMsg || '未捕获到具体异常'}</pre>
-        ${task.errorStack ? `<pre style="margin-top: 6px; padding: 10px; background: #0c0a17; border-radius: 6px; color: #94a3b8; font-size: 0.72rem; overflow-x: auto; max-height: 150px;">${task.errorStack}</pre>` : ''}
+      <div class="modal-box box-error">
+        <div class="modal-box-row"><span class="modal-box-label">目标文件:</span> ${task.name}</div>
+        <div class="modal-box-row"><span class="modal-box-label">源路径:</span> ${task.path}</div>
+        <div class="modal-box-row" style="margin-top: 6px;"><span class="modal-box-label">错误原因:</span></div>
+        <div class="modal-box-code">${task.errorMsg || '未捕获到具体异常'}</div>
+        ${task.errorStack ? `<div class="modal-box-code" style="max-height: 90px; color: var(--text-tertiary);">${task.errorStack}</div>` : ''}
       </div>
-      <div style="font-size: 0.8rem; color: #cbd5e1; line-height: 1.5; padding: 0 4px;">
+      <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px;">
         <strong>常见排查建议：</strong><br>
-        1. 确保源文件没有被其他程序独占占用。<br>
-        2. Word 转 PDF 已内置 Chromium 引擎，零安装即可生成。<br>
-        3. 如需指定保存位置，可在顶部点击【更改】选择保存目录。
+        1. 确保源文件没有被其他程序独占占用；<br>
+        2. 如需指定保存位置，可在顶部工具栏点击【更改】选择保存目录；<br>
+        3. Word 与 PDF 已内置 Windows 原生保真与排版重组引擎。
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="modalCloseActionBtn">知道了</button>
       </div>
     `;
+
+    document.getElementById('modalCloseActionBtn')?.addEventListener('click', () => {
+      previewDrawer.classList.remove('open');
+    });
 
     previewDrawer.classList.add('open');
   }
 
+  // 关闭弹窗
   closeDrawerBtn.addEventListener('click', () => {
     previewDrawer.classList.remove('open');
   });
 
+  // 点击遮罩关闭弹窗
+  previewDrawer.addEventListener('click', (e) => {
+    if (e.target === previewDrawer) {
+      previewDrawer.classList.remove('open');
+    }
+  });
+
+  // 拖拽与文件选择
   dropZone.addEventListener('click', () => fileInput.click());
+
   fileInput.addEventListener('change', (e) => {
     if (e.target.files && e.target.files.length > 0) {
       addFiles(Array.from(e.target.files));
@@ -428,6 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // 批量统一格式
   batchTargetSelect.addEventListener('change', (e) => {
     const val = e.target.value;
     if (!val) return;
@@ -439,17 +501,20 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTasks();
   });
 
+  // 清空全部
   clearAllBtn.addEventListener('click', () => {
     tasks = [];
     renderTasks();
   });
 
+  // 选择输出目录
   changeSaveDirBtn.addEventListener('click', async () => {
     if (window.electronAPI?.selectDirectory) {
       const selected = await window.electronAPI.selectDirectory();
       if (selected) {
         customSaveDir = selected;
         savePathDisplay.textContent = selected;
+        savePathDisplay.title = selected;
       }
     }
   });
@@ -462,7 +527,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (label) progressStatusLabel.textContent = label;
   }
 
-  // 开始转换 (DORARARA!)
+  // 开始批量转换 (DORARARA!)
   startConvertBtn.addEventListener('click', async () => {
     if (tasks.length === 0) return;
 
@@ -470,16 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
     startConvertBtn.disabled = true;
     footerStatusText.textContent = 'ドララララ！疯狂钻石正在高速原子重组中...';
 
-    // 显示进度条初始状态
     updateProgress(5, '⚡ 替身出击！开始原子级拆解...');
-
-    // 极速机关枪拳击打击音效 (每 110ms 打出一记真实重拳)
-    const punchInterval = setInterval(() => {
-      playPunchSound();
-      if (Math.random() > 0.6) {
-        spawnMangaSfx(Math.random() > 0.5 ? 'ドラァ！' : 'ドラララ！');
-      }
-    }, 110);
 
     let successCount = 0;
     let failCount = 0;
@@ -489,7 +545,7 @@ document.addEventListener('DOMContentLoaded', () => {
       task.status = 'converting';
       renderTasks();
 
-      const currentProgress = ((i + 0.3) / tasks.length) * 100;
+      const currentProgress = ((i + 0.2) / tasks.length) * 100;
       updateProgress(currentProgress, `⚡ 正在重组 [${i + 1}/${tasks.length}]: ${task.name}...`);
 
       try {
@@ -506,12 +562,12 @@ document.addEventListener('DOMContentLoaded', () => {
             successCount++;
           } else {
             task.status = 'error';
-            task.errorMsg = res.error || '转换异常';
+            task.errorMsg = res.error || '转换失败';
             task.errorStack = res.stack;
             failCount++;
           }
         } else {
-          await new Promise(r => setTimeout(r, 600));
+          await new Promise(r => setTimeout(r, 400));
           task.status = 'success';
           task.outputPath = task.path.replace(/\.[^/.]+$/, `.${task.target}`);
           successCount++;
@@ -528,7 +584,6 @@ document.addEventListener('DOMContentLoaded', () => {
       renderTasks();
     }
 
-    clearInterval(punchInterval);
     startConvertBtn.disabled = false;
 
     if (failCount === 0) {

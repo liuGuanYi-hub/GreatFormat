@@ -51,48 +51,66 @@ class OfficeEngine {
     // 1. 优先尝试 Windows 原生 COM 自动化 (MS Word / WPS Office)
     if (process.platform === 'win32') {
       try {
-        // 关键点：使用 UTF-8 with BOM (\uFEFF) 确保 PowerShell 5.1 正确解析包含中文或特殊字符的完整文件路径
-        const psScript = `\uFEFF
-$inputPath = '${resolvedInput.replace(/'/g, "''")}'
-$outputPath = '${resolvedOutput.replace(/'/g, "''")}'
+        const vbsContent = `
+On Error Resume Next
+Dim docxPath, outPdf
+docxPath = "${resolvedInput.replace(/\\/g, '\\\\')}"
+outPdf = "${resolvedOutput.replace(/\\/g, '\\\\')}"
 
-# 1. 优先尝试 MS Word
-$word = $null
-try {
-    $word = New-Object -ComObject Word.Application
-    $word.Visible = $false
-    $doc = $word.Documents.Open($inputPath, $false, $true)
-    $doc.ExportAsFixedFormat($outputPath, 17)
-    $doc.Close($false)
-    $word.Quit()
-    exit 0
-} catch {
-    if ($word) { try { $word.Quit() } catch {} }
-}
+' 1. 尝试 Microsoft Word
+Dim word, doc
+Set word = CreateObject("Word.Application")
+If Err.Number = 0 And Not word Is Nothing Then
+    word.Visible = False
+    word.DisplayAlerts = False
+    Set doc = word.Documents.Open(docxPath, False, True)
+    If Err.Number = 0 And Not doc Is Nothing Then
+        doc.ExportAsFixedFormat outPdf, 17
+        doc.Close False
+        word.Quit False
+        If Err.Number = 0 Then
+            WScript.Quit 0
+        End If
+    End If
+    word.Quit False
+End If
 
-# 2. 尝试 WPS 文字 (KWPS / WPS.Application)
-$wps = $null
-try {
-    $wps = New-Object -ComObject KWPS.Application -ErrorAction SilentlyContinue
-    if (-not $wps) { $wps = New-Object -ComObject WPS.Application -ErrorAction SilentlyContinue }
-    if (-not $wps) { $wps = New-Object -ComObject wps.application -ErrorAction SilentlyContinue }
-    $wps.Visible = $false
-    $doc = $wps.Documents.Open($inputPath, $false, $true)
-    $doc.ExportAsFixedFormat($outputPath, 17)
-    $doc.Close($false)
-    $wps.Quit()
-    exit 0
-} catch {
-    if ($wps) { try { $wps.Quit() } catch {} }
-}
+Err.Clear
 
-exit 1
+' 2. 尝试 WPS 文字 (KWPS / WPS)
+Dim wps
+Set wps = CreateObject("KWPS.Application")
+If Err.Number <> 0 Or wps Is Nothing Then
+    Err.Clear
+    Set wps = CreateObject("WPS.Application")
+End If
+
+If Err.Number = 0 And Not wps Is Nothing Then
+    wps.Visible = False
+    wps.DisplayAlerts = False
+    Set doc = wps.Documents.Open(docxPath, False, True)
+    If Err.Number = 0 And Not doc Is Nothing Then
+        doc.ExportAsFixedFormat outPdf, 17
+        doc.Close False
+        wps.Quit False
+        If Err.Number = 0 Then
+            WScript.Quit 0
+        End If
+    End If
+    wps.Quit False
+End If
+
+WScript.Quit 1
 `;
-        const tempPs = path.join(path.dirname(resolvedOutput), `convert_${Date.now()}.ps1`);
-        fs.writeFileSync(tempPs, psScript, 'utf8');
+        const tempVbs = path.join(path.dirname(resolvedOutput), `convert_com_${Date.now()}.vbs`);
+        // 使用带有 UTF-16LE BOM 写入，确保 cscript 正确解析中文字符路径
+        fs.writeFileSync(tempVbs, Buffer.from('\uFEFF' + vbsContent, 'utf16le'));
 
-        await execAsync(`powershell -NoProfile -ExecutionPolicy Bypass -File "${tempPs}"`);
-        if (fs.existsSync(tempPs)) fs.unlinkSync(tempPs);
+        try {
+          await execAsync(`cscript //Nologo "${tempVbs}"`);
+        } finally {
+          if (fs.existsSync(tempVbs)) fs.unlinkSync(tempVbs);
+        }
 
         if (fs.existsSync(resolvedOutput)) {
           return {
@@ -118,26 +136,28 @@ exit 1
 <head>
   <meta charset="utf-8">
   <style>
-    @page { size: A4; margin: 20mm 15mm 20mm 15mm; }
+    @page { size: A4; margin: 12mm 12mm 12mm 12mm; }
+    * { box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
-      font-size: 11pt;
-      line-height: 1.6;
+      font-size: 10pt;
+      line-height: 1.45;
       color: #111827;
       margin: 0;
       padding: 0;
     }
-    h1 { font-size: 20pt; margin-top: 18pt; margin-bottom: 8pt; color: #111827; font-weight: 700; }
-    h2 { font-size: 15pt; margin-top: 14pt; margin-bottom: 6pt; color: #1f2937; font-weight: 600; }
-    h3 { font-size: 13pt; margin-top: 12pt; margin-bottom: 4pt; color: #374151; font-weight: 600; }
-    p { margin-top: 0; margin-bottom: 8pt; text-align: justify; }
-    table { width: 100%; border-collapse: collapse; margin: 12pt 0; }
-    th, td { border: 1px solid #d1d5db; padding: 6pt 8pt; font-size: 10pt; }
+    h1 { font-size: 16pt; margin-top: 10pt; margin-bottom: 4pt; color: #111827; font-weight: 700; }
+    h2 { font-size: 12pt; margin-top: 8pt; margin-bottom: 3pt; color: #1f2937; font-weight: 600; }
+    h3 { font-size: 11pt; margin-top: 6pt; margin-bottom: 2pt; color: #374151; font-weight: 600; }
+    p { margin-top: 0; margin-bottom: 4pt; text-align: justify; }
+    table { width: 100%; border-collapse: collapse; margin: 6pt 0; page-break-inside: auto; }
+    tr { page-break-inside: avoid; page-break-after: auto; }
+    th, td { border: 1px solid #d1d5db; padding: 4pt 6pt; font-size: 9.5pt; }
     th { background-color: #f3f4f6; font-weight: 600; }
-    img { max-width: 100%; height: auto; display: block; margin: 8pt auto; }
-    ul, ol { margin-top: 0; margin-bottom: 8pt; padding-left: 20pt; }
-    li { margin-bottom: 3pt; }
-    blockquote { border-left: 3px solid #9ca3af; margin: 8pt 0; padding-left: 10pt; color: #4b5563; }
+    img { max-width: 100%; height: auto; display: block; margin: 4pt auto; }
+    ul, ol { margin-top: 0; margin-bottom: 4pt; padding-left: 16pt; }
+    li { margin-bottom: 2pt; }
+    blockquote { border-left: 3px solid #9ca3af; margin: 6pt 0; padding-left: 8pt; color: #4b5563; }
   </style>
 </head>
 <body>

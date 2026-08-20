@@ -7,51 +7,61 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="app-container">
-    <!-- 顶部导航栏 -->
-    <header class="app-header">
-      <div class="brand">
-        <div class="diamond-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="6 3 18 3 22 9 12 22 2 9" fill="url(#diamond-grad)" stroke="#EC4899" />
-            <defs>
-              <linearGradient id="diamond-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#8B5CF6"/>
-                <stop offset="100%" stop-color="#EC4899"/>
-              </linearGradient>
-            </defs>
-          </svg>
+  <div class="window-container">
+    <!-- 顶部工具栏 -->
+    <header class="toolbar">
+      <div class="toolbar-left">
+        <!-- macOS 经典交通灯窗口控制点装饰 -->
+        <div class="traffic-lights">
+          <span class="light close"></span>
+          <span class="light minimize"></span>
+          <span class="light maximize"></span>
         </div>
-        <div class="brand-text">
-          <h1>GreatFormat <span class="tag">太棒格式</span></h1>
-          <p class="subtitle">Crazy Diamond · 纯本地离线原子重组转换器</p>
+        <div class="app-branding">
+          <div class="app-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </div>
+          <div class="app-title-group">
+            <h1 class="app-name">GreatFormat <span class="badge-accent">Crazy Diamond</span></h1>
+            <span class="app-desc">原子级极速重组转换</span>
+          </div>
         </div>
       </div>
 
-      <div class="header-actions">
-        <!-- 语音音效开关 -->
-        <button class="btn btn-outline btn-sm audio-toggle-btn" id="audioToggleBtn" title="切换 JOJO 语音与战吼音效">
+      <div class="toolbar-right">
+        <!-- 语音音效开关按钮 -->
+        <button class="pill-btn audio-toggle-btn" id="audioToggleBtn" title="切换 JOJO 语音与打击音效">
           <span id="audioIcon">🔊</span>
-          <span id="audioText">JOJO 语音: 开启</span>
+          <span id="audioText">JOJO 原声: 开</span>
         </button>
 
-        <div class="output-dir-picker" id="outputDirPicker">
-          <span class="label">保存目录:</span>
-          <span class="path" id="savePathDisplay">原文件同级目录</span>
-          <button class="btn btn-outline btn-sm" id="changeSaveDirBtn">更改</button>
+        <!-- 保存路径设置胶囊 -->
+        <div class="save-dir-pill" id="outputDirPicker">
+          <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span class="pill-label">存储至:</span>
+          <span class="pill-path" id="savePathDisplay" title="原文件同级目录">原文件同级目录</span>
+          <button class="pill-action-btn" id="changeSaveDirBtn">更改</button>
         </div>
       </div>
     </header>
 
-    <!-- 主交互工作区 -->
-    <main class="app-main">
-      <!-- 左侧：仗助与替身动态交互状态展示区 -->
-      <aside class="mascot-panel">
-        <div class="character-card">
-          <!-- 2D 无边框全身官方立绘展示 -->
+    <!-- 主工作区：左右双栏布局 -->
+    <main class="app-layout">
+      <!-- 左侧：东方仗助立绘与漫画气泡交互区 -->
+      <aside class="mascot-sidebar">
+        <div class="mascot-card">
+          <!-- 东方仗助全身官方立绘展示 -->
           <div class="fullbody-wrapper" id="mascotAvatar">
             <div class="stand-aura-glow" id="standAura"></div>
-            <img src="../assets/josuke_fullbody_official.png" id="mascotImg" class="mascot-fullbody" alt="东方仗助 官方2D立绘" />
+            <img src="../assets/josuke_fullbody_official.png" id="mascotImg" class="mascot-fullbody" alt="东方仗助 官方立绘" />
           </div>
 
           <!-- 漫画气泡对话框 -->
@@ -65,91 +75,105 @@
             </div>
           </div>
 
-          <div class="stand-stat">
-            <div class="stat-badge">替身：疯狂钻石 (Crazy Diamond)</div>
-            <div class="stat-desc">破坏并以原子级精度修复 / 重构物质</div>
+          <!-- 替身属性简介 -->
+          <div class="stand-meta">
+            <div class="stand-name">替身：疯狂钻石 (Crazy Diamond)</div>
+            <div class="stand-ability">原子级精度物质修复与高保真重组</div>
           </div>
         </div>
       </aside>
 
       <!-- 右侧：文件拖拽与转换队列管理 -->
-      <section class="workspace-panel">
+      <section class="workspace-area">
         <!-- 漂浮漫画拟声词层 -->
         <div class="manga-sfx-container" id="mangaSfxContainer"></div>
 
-        <!-- 拖拽放置区域 -->
-        <div class="drop-zone" id="dropZone">
-          <div class="drop-content">
-            <div class="drop-icon">
-              <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2">
+        <!-- 拖拽上传区域 -->
+        <section class="drop-card" id="dropZone">
+          <div class="drop-inner">
+            <div class="upload-icon-wrapper">
+              <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                 <polyline points="17 8 12 3 7 8"></polyline>
                 <line x1="12" y1="3" x2="12" y2="15"></line>
               </svg>
             </div>
-            <h3>拖拽文件至此处，或 <span class="highlight">点击选取文件</span></h3>
-            <p class="drop-tip">支持 Word (.docx) ↔ PDF ↔ 图片 (.png/.jpg/.webp/.ico) 全本地极速互转</p>
+            <h2 class="drop-title">拖拽文件到此处，或 <span class="drop-browse-link">点击选取文件</span></h2>
+            <p class="drop-subtitle">完全本地离线处理 · 保障数据隐私安全</p>
+            
+            <div class="format-tags">
+              <span class="format-tag tag-pdf">PDF</span>
+              <span class="format-tag tag-word">Word (.docx/.doc)</span>
+              <span class="format-tag tag-img">图片 (.png/.jpg/.webp/.ico)</span>
+              <span class="format-tag tag-text">Markdown / 纯文本</span>
+            </div>
           </div>
           <input type="file" id="fileInput" multiple style="display: none;">
-        </div>
+        </section>
 
         <!-- 全局转换进度条 -->
-        <div class="global-progress-wrapper" id="globalProgressWrapper" style="display: none;">
-          <div class="progress-info">
+        <div class="progress-section" id="globalProgressWrapper" style="display: none;">
+          <div class="progress-header">
             <span class="progress-title" id="progressStatusLabel">⚡ 正在原子重组 (DORARARA!)...</span>
             <span class="progress-percentage" id="progressPercentLabel">0%</span>
           </div>
           <div class="progress-track">
-            <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;">
-              <div class="progress-shine"></div>
+            <div class="progress-fill" id="progressBarFill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- 任务列表控制栏与卡片列表 -->
+        <section class="queue-section" id="queueSection" style="display: none;">
+          <div class="queue-header" id="queueHeader">
+            <div class="queue-meta">
+              <span class="queue-title">待处理文件</span>
+              <span class="badge-count" id="taskCount">0</span>
+            </div>
+            <div class="queue-actions">
+              <div class="batch-control">
+                <label for="batchTargetSelect" class="batch-label">批量目标:</label>
+                <select id="batchTargetSelect" class="apple-select">
+                  <option value="">-- 选择目标格式 --</option>
+                  <option value="pdf">PDF 文档 (.pdf)</option>
+                  <option value="docx">Word 文档 (.docx)</option>
+                  <option value="png">PNG 高清图 (.png)</option>
+                  <option value="jpg">JPG 图片 (.jpg)</option>
+                  <option value="webp">WebP 格式 (.webp)</option>
+                  <option value="ico">ICO 图标 (.ico)</option>
+                </select>
+              </div>
+              <button class="btn btn-secondary btn-sm" id="clearAllBtn">清空列表</button>
             </div>
           </div>
-        </div>
 
-        <!-- 任务列表控制栏 -->
-        <div class="queue-header" id="queueHeader" style="display: none;">
-          <div class="queue-title">
-            <span>待重构文件清单 (<strong id="taskCount">0</strong>)</span>
-          </div>
-          <div class="queue-controls">
-            <label class="batch-label">批量统一目标:</label>
-            <select id="batchTargetSelect" class="select-box">
-              <option value="">-- 选择格式 --</option>
-              <option value="pdf">PDF (.pdf)</option>
-              <option value="docx">Word (.docx)</option>
-              <option value="png">PNG (.png)</option>
-              <option value="jpg">JPG (.jpg)</option>
-              <option value="webp">WebP (.webp)</option>
-              <option value="ico">ICO (.ico)</option>
-            </select>
-            <button class="btn btn-ghost btn-sm" id="clearAllBtn">清空全部</button>
-          </div>
-        </div>
+          <!-- 任务列表卡片容器 -->
+          <div class="task-list" id="taskList"></div>
+        </section>
 
-        <!-- 任务队列列表 -->
-        <div class="task-list" id="taskList"></div>
-
-        <!-- 底部主操作区 -->
-        <div class="action-footer" id="actionFooter" style="display: none;">
-          <div class="footer-stats">
-            <span id="footerStatusText">准备就绪，随时可启动原子重构</span>
+        <!-- 底部操作栏 -->
+        <footer class="action-bar" id="actionFooter" style="display: none;">
+          <div class="status-summary">
+            <span class="status-dot"></span>
+            <span id="footerStatusText">准备就绪，随时可启动原子重组</span>
           </div>
-          <button class="btn btn-primary btn-lg btn-glow" id="startConvertBtn">
-            <span class="btn-icon">⚡</span>
-            <span class="btn-text">DORARARA! 开始转换</span>
+          <button class="btn btn-primary btn-convert" id="startConvertBtn">
+            <span class="btn-flash-icon">⚡</span>
+            <span>DORARARA! 开始转换</span>
           </button>
-        </div>
+        </footer>
       </section>
     </main>
 
-    <!-- 转换完成浮层提示 / 预览抽屉 -->
-    <div class="preview-drawer" id="previewDrawer">
-      <div class="drawer-header">
-        <h3 id="drawerTitle">详情与预览</h3>
-        <button class="btn-close" id="closeDrawerBtn">&times;</button>
-      </div>
-      <div class="drawer-body" id="drawerBody">
-        <!-- 动态生成结果 -->
+    <!-- macOS Sheet 弹窗 (用于查看结果与错误排查) -->
+    <div class="modal-backdrop" id="previewDrawer">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title" id="drawerTitle">转换详情</h3>
+          <button class="modal-close-btn" id="closeDrawerBtn" aria-label="关闭">&times;</button>
+        </div>
+        <div class="modal-body" id="drawerBody">
+          <!-- 动态注入内容 -->
+        </div>
       </div>
     </div>
   </div>

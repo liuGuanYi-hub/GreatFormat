@@ -9,11 +9,12 @@ let mainWindow;
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1060,
-    height: 740,
-    minWidth: 880,
+    height: 720,
+    minWidth: 900,
     minHeight: 600,
-    backgroundColor: '#0c0a17',
+    backgroundColor: '#f5f5f7',
     title: 'GreatFormat 太棒格式 - 疯狂钻石主题转换器',
+    titleBarStyle: 'hiddenInset',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,

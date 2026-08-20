@@ -26,8 +26,8 @@ class PdfEngine {
     try {
       const pyScript = `
 import sys
-from pdf2docx import Converter
 import os
+from pdf2docx import Converter
 
 pdf_path = sys.argv[1]
 docx_path = sys.argv[2]
@@ -35,6 +35,26 @@ docx_path = sys.argv[2]
 cv = Converter(pdf_path)
 cv.convert(docx_path, start=0, end=None)
 cv.close()
+
+# 规整清理意外产生的空段落分节符与超大下边距，保证完美紧凑排版
+try:
+    import docx
+    from docx.shared import Pt
+    doc = docx.Document(docx_path)
+    for p in doc.paragraphs:
+        if not p.text.strip():
+            pPr = p._p.get_or_add_pPr()
+            for child in list(pPr):
+                if child.tag.endswith('sectPr'):
+                    pPr.remove(child)
+    for s in doc.sections:
+        if s.bottom_margin.pt > 45:
+            s.bottom_margin = Pt(25.5)
+        if s.top_margin.pt > 45:
+            s.top_margin = Pt(29.75)
+    doc.save(docx_path)
+except Exception as e:
+    pass
 `;
       const tempPy = path.join(path.dirname(resolvedOutput), `convert_pdf_${Date.now()}.py`);
       fs.writeFileSync(tempPy, pyScript, 'utf8');
@@ -51,7 +71,55 @@ cv.close()
         };
       }
     } catch (err) {
-      console.warn('[PdfEngine] pdf2docx 转换未完成，尝试備用方式:', err.message);
+      console.warn('[PdfEngine] pdf2docx 转换未完成，尝试 Windows 原生 COM 方案:', err.message);
+    }
+
+    // 2. 备用尝试 Windows 原生 Word / WPS PDF Reflow
+    if (process.platform === 'win32') {
+      try {
+        const vbsContent = `
+On Error Resume Next
+Dim pdfPath, docxPath
+pdfPath = "${resolvedInput.replace(/\\/g, '\\\\')}"
+docxPath = "${resolvedOutput.replace(/\\/g, '\\\\')}"
+
+Dim word, doc
+Set word = CreateObject("Word.Application")
+If Err.Number = 0 And Not word Is Nothing Then
+    word.Visible = False
+    word.DisplayAlerts = False
+    Set doc = word.Documents.Open(pdfPath, False, True)
+    If Err.Number = 0 And Not doc Is Nothing Then
+        doc.SaveAs docxPath, 16
+        doc.Close False
+        word.Quit False
+        If Err.Number = 0 Then
+            WScript.Quit 0
+        End If
+    End If
+    word.Quit False
+End If
+WScript.Quit 1
+`;
+        const tempVbs = path.join(path.dirname(resolvedOutput), `pdf_reflow_${Date.now()}.vbs`);
+        fs.writeFileSync(tempVbs, Buffer.from('\uFEFF' + vbsContent, 'utf16le'));
+        try {
+          await execAsync(`cscript //Nologo "${tempVbs}"`);
+        } finally {
+          if (fs.existsSync(tempVbs)) fs.unlinkSync(tempVbs);
+        }
+
+        if (fs.existsSync(resolvedOutput)) {
+          return {
+            success: true,
+            engine: 'Windows Native Word Reflow',
+            outputPath: resolvedOutput,
+            size: fs.statSync(resolvedOutput).size
+          };
+        }
+      } catch (e) {
+        console.warn('[PdfEngine] Native reflow failed:', e.message);
+      }
     }
 
     throw new Error('PDF 转 Word 失败：未能通过排版解析引擎提取内容，请确认文件是否受密码保护');
