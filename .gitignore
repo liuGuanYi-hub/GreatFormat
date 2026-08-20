@@ -12,3 +12,4 @@ yarn-error.log*
 .env.local
 temp_output/
 *.tmp
+用于测试的文件夹-不用git/
