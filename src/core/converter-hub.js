@@ -3,33 +3,87 @@ const fs = require('fs');
 const ImageEngine = require('./image-engine');
 const PDFEngine = require('./pdf-engine');
 const OfficeEngine = require('./office-engine');
+const MediaEngine = require('./media-engine');
+const DataEngine = require('./data-engine');
 const { getFileExtension, generateOutputPath, formatFileSize } = require('./utils');
 
 class ConverterHub {
   /**
-   * 格式映射字典：定义每种源文件支持转换的目标格式列表
+   * 格式映射字典：定义每种源文件支持转换的目标格式列表（50+ 格式全能矩阵）
    */
   static FORMAT_MAP = {
-    // 图像类
-    png: ['jpg', 'jpeg', 'webp', 'avif', 'ico', 'tiff', 'pdf'],
-    jpg: ['png', 'webp', 'avif', 'ico', 'tiff', 'pdf'],
-    jpeg: ['png', 'webp', 'avif', 'ico', 'tiff', 'pdf'],
-    webp: ['png', 'jpg', 'jpeg', 'avif', 'ico', 'pdf'],
-    avif: ['png', 'jpg', 'jpeg', 'webp', 'pdf'],
-    bmp: ['png', 'jpg', 'jpeg', 'webp', 'pdf'],
-    tiff: ['png', 'jpg', 'jpeg', 'webp', 'pdf'],
+    // 图像类 (Images & RAW & Vectors)
+    png: ['jpg', 'jpeg', 'webp', 'avif', 'ico', 'tiff', 'bmp', 'gif', 'pdf'],
+    jpg: ['png', 'webp', 'avif', 'ico', 'tiff', 'bmp', 'gif', 'pdf'],
+    jpeg: ['png', 'webp', 'avif', 'ico', 'tiff', 'bmp', 'gif', 'pdf'],
+    webp: ['png', 'jpg', 'jpeg', 'avif', 'ico', 'tiff', 'bmp', 'gif', 'pdf'],
+    avif: ['png', 'jpg', 'jpeg', 'webp', 'ico', 'tiff', 'pdf'],
+    bmp: ['png', 'jpg', 'jpeg', 'webp', 'avif', 'ico', 'tiff', 'pdf'],
+    tiff: ['png', 'jpg', 'jpeg', 'webp', 'avif', 'ico', 'pdf'],
+    tif: ['png', 'jpg', 'jpeg', 'webp', 'avif', 'ico', 'pdf'],
+    gif: ['png', 'jpg', 'webp', 'mp4', 'pdf'],
     ico: ['png', 'jpg', 'webp'],
-    svg: ['png', 'jpg', 'webp', 'pdf'],
+    svg: ['png', 'jpg', 'webp', 'ico', 'pdf'],
+    heic: ['png', 'jpg', 'jpeg', 'webp', 'pdf'],
+    heif: ['png', 'jpg', 'jpeg', 'webp', 'pdf'],
+    tga: ['png', 'jpg', 'jpeg', 'webp', 'pdf'],
+    cr2: ['jpg', 'png', 'webp', 'tiff'],
+    cr3: ['jpg', 'png', 'webp', 'tiff'],
+    nef: ['jpg', 'png', 'webp', 'tiff'],
+    arw: ['jpg', 'png', 'webp', 'tiff'],
+    dng: ['jpg', 'png', 'webp', 'tiff'],
 
-    // PDF 类
-    pdf: ['docx', 'png', 'jpg', 'split', 'merge'],
+    // PDF 全能工具箱
+    pdf: ['docx', 'xlsx', 'png', 'jpg', 'webp', 'txt', 'html', 'split'],
 
-    // Office / 文档类
-    docx: ['pdf', 'markdown', 'html', 'txt'],
-    doc: ['pdf', 'docx'],
-    md: ['docx', 'pdf', 'html'],
-    markdown: ['docx', 'pdf', 'html'],
-    txt: ['docx', 'pdf']
+    // Office 文档与演示类
+    docx: ['pdf', 'html', 'txt', 'md', 'epub'],
+    doc: ['pdf', 'docx', 'html', 'txt', 'md'],
+    rtf: ['pdf', 'docx', 'html', 'txt', 'md'],
+    odt: ['pdf', 'docx', 'html', 'txt', 'md'],
+    pptx: ['pdf', 'png', 'jpg'],
+    ppt: ['pdf', 'png', 'jpg'],
+    xlsx: ['pdf', 'csv', 'tsv', 'json', 'html'],
+    xls: ['pdf', 'xlsx', 'csv', 'json', 'html'],
+    csv: ['xlsx', 'json', 'yaml', 'tsv', 'html'],
+    tsv: ['xlsx', 'csv', 'json', 'html'],
+
+    // 纯文本、Markdown 与电子书
+    md: ['docx', 'pdf', 'html', 'txt', 'epub'],
+    markdown: ['docx', 'pdf', 'html', 'txt', 'epub'],
+    txt: ['docx', 'pdf', 'html', 'md', 'epub'],
+    epub: ['txt', 'md', 'html', 'pdf', 'docx'],
+    mobi: ['txt', 'md', 'html', 'pdf', 'epub'],
+
+    // 结构化数据
+    json: ['xlsx', 'csv', 'yaml', 'xml'],
+    yaml: ['json', 'csv', 'xlsx'],
+    yml: ['json', 'csv', 'xlsx'],
+    xml: ['json', 'yaml'],
+
+    // 音频格式互转
+    mp3: ['wav', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'ac3'],
+    wav: ['mp3', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'ac3'],
+    flac: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'opus', 'wma'],
+    m4a: ['mp3', 'wav', 'flac', 'aac', 'ogg', 'opus'],
+    aac: ['mp3', 'wav', 'flac', 'm4a', 'ogg', 'opus'],
+    ogg: ['mp3', 'wav', 'flac', 'm4a', 'aac', 'opus'],
+    opus: ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg'],
+    wma: ['mp3', 'wav', 'flac', 'm4a', 'aac'],
+    ac3: ['mp3', 'wav', 'flac', 'aac'],
+    aiff: ['mp3', 'wav', 'flac', 'm4a'],
+
+    // 视频格式互转与提取音频
+    mp4: ['mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'gif', 'mp3', 'wav', 'aac', 'm4a', 'flac'],
+    mkv: ['mp4', 'avi', 'mov', 'wmv', 'webm', 'gif', 'mp3', 'wav', 'aac', 'flac'],
+    avi: ['mp4', 'mkv', 'mov', 'wmv', 'webm', 'gif', 'mp3', 'wav', 'aac'],
+    mov: ['mp4', 'mkv', 'avi', 'wmv', 'webm', 'gif', 'mp3', 'wav', 'aac'],
+    wmv: ['mp4', 'mkv', 'avi', 'mov', 'webm', 'gif', 'mp3', 'wav'],
+    flv: ['mp4', 'mkv', 'avi', 'mov', 'webm', 'mp3', 'wav'],
+    webm: ['mp4', 'mkv', 'mov', 'gif', 'mp3', 'wav', 'ogg'],
+    m4v: ['mp4', 'mkv', 'mov', 'mp3', 'aac'],
+    ts: ['mp4', 'mkv', 'mp3', 'wav'],
+    '3gp': ['mp4', 'mp3', 'aac']
   };
 
   /**
@@ -48,7 +102,9 @@ class ConverterHub {
   static getCapabilities() {
     return {
       images: ImageEngine.SUPPORTED_INPUT_FORMATS,
-      documents: ['docx', 'doc', 'pdf', 'md', 'txt', 'html'],
+      audio: MediaEngine.AUDIO_FORMATS,
+      video: MediaEngine.VIDEO_FORMATS,
+      documents: ['docx', 'doc', 'pdf', 'md', 'txt', 'html', 'pptx', 'ppt', 'xlsx', 'xls', 'csv', 'epub'],
       matrix: this.FORMAT_MAP
     };
   }
@@ -73,16 +129,32 @@ class ConverterHub {
 
     let result;
 
-    // 1. 图像类转换 (Image ➔ Image / Image ➔ PDF)
-    if (ImageEngine.SUPPORTED_INPUT_FORMATS.includes(sourceExt)) {
+    // 1. 音频格式转换 (Audio ➔ Audio)
+    if (MediaEngine.AUDIO_FORMATS.includes(sourceExt)) {
+      result = await MediaEngine.convertAudio(inputPath, outputPath, options);
+    }
+    // 2. 视频格式转换与提取音频 / 动图 (Video ➔ Video / Audio / GIF)
+    else if (MediaEngine.VIDEO_FORMATS.includes(sourceExt)) {
+      result = await MediaEngine.convertVideo(inputPath, outputPath, options);
+    }
+    // 3. 图像类转换 (Image ➔ Image / Image ➔ PDF / RAW / Special)
+    else if (ImageEngine.SUPPORTED_INPUT_FORMATS.includes(sourceExt)) {
       if (normalizedTarget === 'pdf') {
         result = await ImageEngine.imagesToPdf([inputPath], outputPath, options);
       } else {
         result = await ImageEngine.convertImage(inputPath, outputPath, options);
       }
     }
-    // 2. Word / 文档类转换 (Docx ➔ PDF / Markdown / HTML / TXT)
-    else if (['docx', 'doc'].includes(sourceExt)) {
+    // 4. Excel 表格 / 数据交换类 (xlsx / xls / csv / tsv / json / yaml / xml)
+    else if (DataEngine.SPREADSHEET_FORMATS.includes(sourceExt) || DataEngine.DATA_FORMATS.includes(sourceExt)) {
+      result = await DataEngine.convertDataOrSpreadsheet(inputPath, outputPath, options);
+    }
+    // 5. PPT 演示文稿 (PPTX / PPT ➔ PDF / 逐页图片)
+    else if (['pptx', 'ppt'].includes(sourceExt)) {
+      result = await DataEngine.convertPresentation(inputPath, outputPath, options);
+    }
+    // 6. Word / RTF / ODT 文档类 (Docx ➔ PDF / Markdown / HTML / TXT)
+    else if (['docx', 'doc', 'rtf', 'odt'].includes(sourceExt)) {
       if (normalizedTarget === 'pdf') {
         result = await OfficeEngine.docxToPdf(inputPath, outputPath);
       } else if (['md', 'markdown', 'html', 'txt'].includes(normalizedTarget)) {
@@ -91,21 +163,34 @@ class ConverterHub {
         throw new Error(`暂不支持从 ${sourceExt} 转换至 ${normalizedTarget}`);
       }
     }
-    // 3. 文本 / Markdown ➔ Docx
+    // 7. 纯文本 / Markdown ➔ Docx / PDF
     else if (['md', 'markdown', 'txt'].includes(sourceExt)) {
       if (normalizedTarget === 'docx') {
         result = await OfficeEngine.textToDocx(inputPath, outputPath);
+      } else if (normalizedTarget === 'pdf') {
+        const tempDocx = path.join(path.dirname(outputPath), `temp_${Date.now()}.docx`);
+        try {
+          await OfficeEngine.textToDocx(inputPath, tempDocx);
+          result = await OfficeEngine.docxToPdf(tempDocx, outputPath);
+        } finally {
+          if (fs.existsSync(tempDocx)) fs.unlinkSync(tempDocx);
+        }
       } else {
-        throw new Error(`暂不支持从 ${sourceExt} 转换至 ${normalizedTarget}`);
+        result = await DataEngine.convertDataOrSpreadsheet(inputPath, outputPath, options);
       }
     }
-    // 4. PDF 类深度处理 (PDF ➔ Images / Word / etc.)
+    // 8. PDF 全能工具箱 (PDF ➔ Images / Word / Excel / Split)
     else if (sourceExt === 'pdf') {
-      if (['png', 'jpg', 'jpeg'].includes(normalizedTarget)) {
+      if (['png', 'jpg', 'jpeg', 'webp'].includes(normalizedTarget)) {
         const outDir = options.outputDir || path.join(path.dirname(inputPath), `${path.basename(inputPath, '.pdf')}_images`);
         result = await PDFEngine.pdfToImages(inputPath, outDir, { format: normalizedTarget });
       } else if (normalizedTarget === 'docx') {
         result = await PDFEngine.pdfToDocx(inputPath, outputPath);
+      } else if (['xlsx', 'xls'].includes(normalizedTarget)) {
+        result = await PDFEngine.pdfToExcel(inputPath, outputPath);
+      } else if (normalizedTarget === 'split') {
+        const outDir = options.outputDir || path.join(path.dirname(inputPath), `${path.basename(inputPath, '.pdf')}_pages`);
+        result = await PDFEngine.splitPdf(inputPath, outDir);
       } else {
         throw new Error(`暂不支持从 PDF 转换至 ${normalizedTarget}`);
       }

@@ -35,22 +35,80 @@ document.addEventListener('DOMContentLoaded', () => {
   let customSaveDir = null;
   let audioEnabled = true;
 
-  // 支持格式映射表
+  // 支持格式映射表 (50+ 格式全能矩阵)
   const FORMAT_OPTIONS = {
-    png: ['pdf', 'jpg', 'webp', 'avif', 'ico'],
-    jpg: ['pdf', 'png', 'webp', 'avif', 'ico'],
-    jpeg: ['pdf', 'png', 'webp', 'avif', 'ico'],
-    webp: ['pdf', 'png', 'jpg', 'avif', 'ico'],
-    avif: ['pdf', 'png', 'jpg', 'webp'],
-    bmp: ['pdf', 'png', 'jpg', 'webp'],
-    tiff: ['pdf', 'png', 'jpg', 'webp'],
+    // 图像与 RAW
+    png: ['pdf', 'jpg', 'jpeg', 'webp', 'avif', 'ico', 'tiff', 'bmp', 'gif'],
+    jpg: ['pdf', 'png', 'webp', 'avif', 'ico', 'tiff', 'bmp', 'gif'],
+    jpeg: ['pdf', 'png', 'webp', 'avif', 'ico', 'tiff', 'bmp', 'gif'],
+    webp: ['pdf', 'png', 'jpg', 'jpeg', 'avif', 'ico', 'tiff', 'bmp', 'gif'],
+    avif: ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'ico', 'tiff'],
+    bmp: ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'avif', 'ico', 'tiff'],
+    tiff: ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'avif', 'ico'],
+    tif: ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'avif', 'ico'],
     ico: ['png', 'jpg', 'webp'],
-    svg: ['png', 'jpg', 'webp', 'pdf'],
-    docx: ['pdf', 'markdown', 'html', 'txt'],
-    doc: ['pdf', 'docx'],
-    pdf: ['png', 'jpg', 'docx'],
-    md: ['docx', 'pdf', 'html'],
-    txt: ['docx', 'pdf']
+    svg: ['pdf', 'png', 'jpg', 'webp', 'ico'],
+    gif: ['png', 'jpg', 'webp', 'mp4', 'pdf'],
+    heic: ['jpg', 'png', 'webp', 'pdf'],
+    heif: ['jpg', 'png', 'webp', 'pdf'],
+    tga: ['png', 'jpg', 'webp', 'pdf'],
+    cr2: ['jpg', 'png', 'webp', 'tiff'],
+    cr3: ['jpg', 'png', 'webp', 'tiff'],
+    nef: ['jpg', 'png', 'webp', 'tiff'],
+    arw: ['jpg', 'png', 'webp', 'tiff'],
+    dng: ['jpg', 'png', 'webp', 'tiff'],
+
+    // PDF 全能工具箱
+    pdf: ['docx', 'xlsx', 'png', 'jpg', 'webp', 'txt', 'html', 'split'],
+
+    // 文档与演示
+    docx: ['pdf', 'html', 'txt', 'md', 'epub'],
+    doc: ['pdf', 'docx', 'html', 'txt', 'md'],
+    rtf: ['pdf', 'docx', 'html', 'txt', 'md'],
+    odt: ['pdf', 'docx', 'html', 'txt', 'md'],
+    pptx: ['pdf', 'png', 'jpg'],
+    ppt: ['pdf', 'png', 'jpg'],
+
+    // 表格与数据
+    xlsx: ['pdf', 'csv', 'tsv', 'json', 'html'],
+    xls: ['pdf', 'xlsx', 'csv', 'json', 'html'],
+    csv: ['xlsx', 'json', 'yaml', 'tsv', 'html'],
+    tsv: ['xlsx', 'csv', 'json', 'html'],
+    json: ['xlsx', 'csv', 'yaml', 'xml'],
+    yaml: ['json', 'csv', 'xlsx'],
+    yml: ['json', 'csv', 'xlsx'],
+    xml: ['json', 'yaml'],
+
+    // 纯文本与电子书
+    md: ['docx', 'pdf', 'html', 'txt', 'epub'],
+    markdown: ['docx', 'pdf', 'html', 'txt', 'epub'],
+    txt: ['docx', 'pdf', 'html', 'md', 'epub'],
+    epub: ['txt', 'md', 'html', 'pdf', 'docx'],
+    mobi: ['txt', 'md', 'html', 'pdf', 'epub'],
+
+    // 音频格式
+    mp3: ['wav', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'ac3'],
+    wav: ['mp3', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'ac3'],
+    flac: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'opus', 'wma'],
+    m4a: ['mp3', 'wav', 'flac', 'aac', 'ogg', 'opus'],
+    aac: ['mp3', 'wav', 'flac', 'm4a', 'ogg', 'opus'],
+    ogg: ['mp3', 'wav', 'flac', 'm4a', 'aac', 'opus'],
+    opus: ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg'],
+    wma: ['mp3', 'wav', 'flac', 'm4a', 'aac'],
+    ac3: ['mp3', 'wav', 'flac', 'aac'],
+    aiff: ['mp3', 'wav', 'flac', 'm4a'],
+
+    // 视频格式
+    mp4: ['mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'gif', 'mp3', 'wav', 'aac', 'm4a', 'flac'],
+    mkv: ['mp4', 'avi', 'mov', 'wmv', 'webm', 'gif', 'mp3', 'wav', 'aac', 'flac'],
+    avi: ['mp4', 'mkv', 'mov', 'wmv', 'webm', 'gif', 'mp3', 'wav', 'aac'],
+    mov: ['mp4', 'mkv', 'avi', 'wmv', 'webm', 'gif', 'mp3', 'wav', 'aac'],
+    wmv: ['mp4', 'mkv', 'avi', 'mov', 'webm', 'gif', 'mp3', 'wav'],
+    flv: ['mp4', 'mkv', 'avi', 'mov', 'webm', 'mp3', 'wav'],
+    webm: ['mp4', 'mkv', 'mov', 'gif', 'mp3', 'wav', 'ogg'],
+    m4v: ['mp4', 'mkv', 'mov', 'mp3', 'aac'],
+    ts: ['mp4', 'mkv', 'mp3', 'wav'],
+    '3gp': ['mp4', 'mp3', 'aac']
   };
 
   // JOJO 东方仗助日语台词库
@@ -243,9 +301,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // 获取扩展名徽标色彩分类
   function getBadgeClass(ext) {
     if (ext === 'pdf') return 'badge-pdf';
-    if (['docx', 'doc'].includes(ext)) return 'badge-docx';
-    if (['png', 'jpg', 'jpeg', 'webp', 'ico', 'avif', 'bmp', 'tiff', 'svg'].includes(ext)) return 'badge-png';
-    if (['md', 'txt'].includes(ext)) return 'badge-md';
+    if (['docx', 'doc', 'rtf', 'odt'].includes(ext)) return 'badge-docx';
+    if (['xlsx', 'xls', 'csv', 'tsv'].includes(ext)) return 'badge-excel';
+    if (['pptx', 'ppt'].includes(ext)) return 'badge-ppt';
+    if (['png', 'jpg', 'jpeg', 'webp', 'ico', 'avif', 'bmp', 'tiff', 'tif', 'svg', 'gif', 'heic', 'heif', 'tga', 'cr2', 'cr3', 'nef', 'arw', 'dng'].includes(ext)) return 'badge-png';
+    if (['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'ac3', 'aiff'].includes(ext)) return 'badge-audio';
+    if (['mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'm4v', 'ts', '3gp'].includes(ext)) return 'badge-video';
+    if (['json', 'yaml', 'yml', 'xml'].includes(ext)) return 'badge-data';
+    if (['md', 'markdown', 'txt', 'epub', 'mobi'].includes(ext)) return 'badge-md';
     return 'badge-default';
   }
 

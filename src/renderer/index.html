@@ -103,9 +103,11 @@
             
             <div class="format-tags">
               <span class="format-tag tag-pdf">PDF</span>
-              <span class="format-tag tag-word">Word (.docx/.doc)</span>
-              <span class="format-tag tag-img">图片 (.png/.jpg/.webp/.ico)</span>
-              <span class="format-tag tag-text">Markdown / 纯文本</span>
+              <span class="format-tag tag-word">Word / Excel / PPT</span>
+              <span class="format-tag tag-img">图片 / RAW / HEIC / ICO</span>
+              <span class="format-tag tag-audio">音频 (MP3/WAV/FLAC)</span>
+              <span class="format-tag tag-video">视频 (MP4/MKV/GIF)</span>
+              <span class="format-tag tag-text">Markdown / JSON / CSV</span>
             </div>
           </div>
           <input type="file" id="fileInput" multiple style="display: none;">
@@ -134,12 +136,31 @@
                 <label for="batchTargetSelect" class="batch-label">批量目标:</label>
                 <select id="batchTargetSelect" class="apple-select">
                   <option value="">-- 选择目标格式 --</option>
-                  <option value="pdf">PDF 文档 (.pdf)</option>
-                  <option value="docx">Word 文档 (.docx)</option>
-                  <option value="png">PNG 高清图 (.png)</option>
-                  <option value="jpg">JPG 图片 (.jpg)</option>
-                  <option value="webp">WebP 格式 (.webp)</option>
-                  <option value="ico">ICO 图标 (.ico)</option>
+                  <optgroup label="文档与表格">
+                    <option value="pdf">PDF 文档 (.pdf)</option>
+                    <option value="docx">Word 文档 (.docx)</option>
+                    <option value="xlsx">Excel 表格 (.xlsx)</option>
+                    <option value="txt">纯文本 (.txt)</option>
+                    <option value="md">Markdown (.md)</option>
+                  </optgroup>
+                  <optgroup label="图片与图标">
+                    <option value="png">PNG 高清图 (.png)</option>
+                    <option value="jpg">JPG 图片 (.jpg)</option>
+                    <option value="webp">WebP 格式 (.webp)</option>
+                    <option value="ico">ICO 图标 (.ico)</option>
+                    <option value="gif">GIF 动图 (.gif)</option>
+                  </optgroup>
+                  <optgroup label="多媒体音视频">
+                    <option value="mp3">MP3 音频 (.mp3)</option>
+                    <option value="wav">WAV 无损音频 (.wav)</option>
+                    <option value="flac">FLAC 高解析音频 (.flac)</option>
+                    <option value="mp4">MP4 视频 (.mp4)</option>
+                  </optgroup>
+                  <optgroup label="结构化数据">
+                    <option value="csv">CSV 数据表格 (.csv)</option>
+                    <option value="json">JSON 数据 (.json)</option>
+                    <option value="yaml">YAML 配置 (.yaml)</option>
+                  </optgroup>
                 </select>
               </div>
               <button class="btn btn-secondary btn-sm" id="clearAllBtn">清空列表</button>

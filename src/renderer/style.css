@@ -600,6 +600,16 @@ body {
   color: #8944ab;
 }
 
+.tag-audio {
+  background: rgba(175, 82, 222, 0.15);
+  color: #8944ab;
+}
+
+.tag-video {
+  background: rgba(255, 45, 85, 0.15);
+  color: #d70015;
+}
+
 /* ==========================================================================
    全局进度条 (Progress Bar)
    ========================================================================== */
@@ -760,6 +770,31 @@ body {
 .file-badge.badge-docx,
 .file-badge.badge-doc {
   background: #007aff;
+  color: #ffffff;
+}
+
+.file-badge.badge-excel {
+  background: #107c41;
+  color: #ffffff;
+}
+
+.file-badge.badge-ppt {
+  background: #c43e1c;
+  color: #ffffff;
+}
+
+.file-badge.badge-audio {
+  background: #af52de;
+  color: #ffffff;
+}
+
+.file-badge.badge-video {
+  background: #ff2d55;
+  color: #ffffff;
+}
+
+.file-badge.badge-data {
+  background: #5856d6;
   color: #ffffff;
 }
 

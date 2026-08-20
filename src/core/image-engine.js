@@ -18,8 +18,13 @@ try {
 }
 
 class ImageEngine {
-  static SUPPORTED_INPUT_FORMATS = ['png', 'jpg', 'jpeg', 'webp', 'avif', 'bmp', 'gif', 'tiff', 'ico', 'svg'];
-  static SUPPORTED_OUTPUT_FORMATS = ['png', 'jpg', 'jpeg', 'webp', 'avif', 'ico', 'tiff', 'pdf'];
+  static RAW_FORMATS = ['cr2', 'cr3', 'nef', 'arw', 'dng'];
+  static SPECIAL_FORMATS = ['heic', 'heif', 'tga'];
+  static SUPPORTED_INPUT_FORMATS = [
+    'png', 'jpg', 'jpeg', 'webp', 'avif', 'bmp', 'gif', 'tiff', 'tif', 'ico', 'svg',
+    'heic', 'heif', 'tga', 'cr2', 'cr3', 'nef', 'arw', 'dng'
+  ];
+  static SUPPORTED_OUTPUT_FORMATS = ['png', 'jpg', 'jpeg', 'webp', 'avif', 'ico', 'tiff', 'bmp', 'gif', 'pdf'];
 
   /**
    * 单图格式转换与压缩
@@ -30,7 +35,14 @@ class ImageEngine {
     }
 
     ensureDirSync(path.dirname(outputPath));
+    const srcExt = getFileExtension(inputPath);
     const targetExt = getFileExtension(outputPath);
+
+    // 如果是特殊格式或 RAW 原片，走 FFmpeg / Python 解码
+    if (this.SPECIAL_FORMATS.includes(srcExt) || this.RAW_FORMATS.includes(srcExt)) {
+      const MediaEngine = require('./media-engine');
+      return await MediaEngine.convertSpecialImage(inputPath, outputPath);
+    }
 
     // 如果目标是 PDF，走多图/单图转 PDF
     if (targetExt === 'pdf') {

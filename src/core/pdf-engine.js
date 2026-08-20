@@ -188,6 +188,108 @@ for i, page in enumerate(doc):
   }
 
   /**
+   * PDF 提取表格转 Excel (.xlsx)
+   */
+  static async pdfToExcel(inputPath, outputPath) {
+    if (!fs.existsSync(inputPath)) {
+      throw new Error(`PDF 文件不存在: ${inputPath}`);
+    }
+
+    ensureDirSync(path.dirname(outputPath));
+    const resolvedInput = path.resolve(inputPath);
+    const resolvedOutput = path.resolve(outputPath);
+
+    try {
+      const pyScript = `
+import sys
+import fitz
+import pandas as pd
+
+pdf_path = sys.argv[1]
+out_excel = sys.argv[2]
+
+doc = fitz.open(pdf_path)
+all_tables = []
+
+for page in doc:
+    # PyMuPDF 表格查找提取能力
+    tabs = page.find_tables()
+    for tab in tabs:
+        df = tab.to_pandas()
+        if not df.empty:
+            all_tables.append(df)
+
+if not all_tables:
+    # 回退：按行提取纯文本转单列表格
+    lines = []
+    for page in doc:
+        lines.extend([line for line in page.get_text().splitlines() if line.strip()])
+    df = pd.DataFrame(lines, columns=['Content'])
+    df.to_excel(out_excel, index=False)
+else:
+    with pd.ExcelWriter(out_excel) as writer:
+        for idx, df in enumerate(all_tables):
+            sheet_name = f"Table_{idx+1}"[:31]
+            df.to_excel(writer, sheet_name=sheet_name, index=False)
+`;
+      const tempPy = path.join(path.dirname(resolvedOutput), `extract_table_${Date.now()}.py`);
+      fs.writeFileSync(tempPy, pyScript, 'utf8');
+
+      await execAsync(`python "${tempPy}" "${resolvedInput}" "${resolvedOutput}"`);
+      if (fs.existsSync(tempPy)) fs.unlinkSync(tempPy);
+
+      if (fs.existsSync(resolvedOutput)) {
+        return {
+          success: true,
+          engine: 'PyMuPDF Table Extractor & Pandas',
+          outputPath: resolvedOutput,
+          size: fs.statSync(resolvedOutput).size
+        };
+      }
+    } catch (err) {
+      throw new Error(`PDF 表格提取失败: ${err.message}`);
+    }
+
+    throw new Error('PDF 转 Excel 未生成输出文件');
+  }
+
+  /**
+   * 拆分 PDF 文件
+   */
+  static async splitPdf(inputPath, outputDir) {
+    if (!fs.existsSync(inputPath)) {
+      throw new Error(`PDF 文件不存在: ${inputPath}`);
+    }
+
+    ensureDirSync(outputDir);
+    const resolvedInput = path.resolve(inputPath);
+    const baseName = path.basename(resolvedInput, '.pdf');
+    const existingBytes = fs.readFileSync(resolvedInput);
+    const srcDoc = await PDFDocument.load(existingBytes);
+    const pageCount = srcDoc.getPageCount();
+    const outputFiles = [];
+
+    for (let i = 0; i < pageCount; i++) {
+      const newDoc = await PDFDocument.create();
+      const [copiedPage] = await newDoc.copyPages(srcDoc, [i]);
+      newDoc.addPage(copiedPage);
+
+      const outPath = path.join(outputDir, `${baseName}_page_${i + 1}.pdf`);
+      const bytes = await newDoc.save();
+      fs.writeFileSync(outPath, bytes);
+      outputFiles.push(outPath);
+    }
+
+    return {
+      success: true,
+      engine: 'PDF-Lib Splitter',
+      pages: pageCount,
+      outputPath: outputFiles[0] || outputDir,
+      outputFiles
+    };
+  }
+
+  /**
    * 合并多个 PDF 文件
    */
   static async mergePdfs(pdfPaths, outputPath) {
@@ -198,13 +300,13 @@ for i, page in enumerate(doc):
     ensureDirSync(path.dirname(outputPath));
     const mergedDoc = await PDFDocument.create();
 
-    for (const filePath of pdfPaths) {
-      if (!fs.existsSync(filePath)) continue;
-      const pdfBytes = fs.readFileSync(filePath);
-      const donorDoc = await PDFDocument.load(pdfBytes);
-      const indices = donorDoc.getPageIndices();
-      const copiedPages = await mergedDoc.copyPages(donorDoc, indices);
-      copiedPages.forEach(p => mergedDoc.addPage(p));
+    for (const pdfPath of pdfPaths) {
+      const bytes = fs.readFileSync(pdfPath);
+      const doc = await PDFDocument.load(bytes);
+      const pages = await mergedDoc.copyPages(doc, doc.getPageIndices());
+      for (const page of pages) {
+        mergedDoc.addPage(page);
+      }
     }
 
     const mergedBytes = await mergedDoc.save();
@@ -212,10 +314,9 @@ for i, page in enumerate(doc):
 
     return {
       success: true,
-      engine: 'PDF-Lib Merge Engine',
+      engine: 'PDF-Lib Merger',
       outputPath,
-      pageCount: mergedDoc.getPageCount(),
-      size: mergedBytes.length
+      size: fs.statSync(outputPath).size
     };
   }
 }
