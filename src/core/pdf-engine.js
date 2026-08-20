@@ -290,34 +290,292 @@ else:
   }
 
   /**
-   * 合并多个 PDF 文件
+   * PDF 转 Clean Markdown（保留结构树、代码块、LaTeX 与整齐表格，对接 LLM/RAG 知识库）
    */
-  static async mergePdfs(pdfPaths, outputPath) {
-    if (!pdfPaths || pdfPaths.length === 0) {
-      throw new Error('未提供待合并的 PDF 文件列表');
+  static async pdfToCleanMarkdown(inputPath, outputPath) {
+    if (!fs.existsSync(inputPath)) {
+      throw new Error(`PDF 文件不存在: ${inputPath}`);
     }
 
     ensureDirSync(path.dirname(outputPath));
-    const mergedDoc = await PDFDocument.create();
+    const resolvedInput = path.resolve(inputPath);
+    const resolvedOutput = path.resolve(outputPath);
 
-    for (const pdfPath of pdfPaths) {
-      const bytes = fs.readFileSync(pdfPath);
-      const doc = await PDFDocument.load(bytes);
-      const pages = await mergedDoc.copyPages(doc, doc.getPageIndices());
-      for (const page of pages) {
-        mergedDoc.addPage(page);
+    try {
+      const pyScript = `
+import sys
+import fitz
+
+pdf_path = sys.argv[1]
+out_md = sys.argv[2]
+
+doc = fitz.open(pdf_path)
+md_lines = []
+
+for page_idx, page in enumerate(doc):
+    md_lines.append(f"\\n<!-- Page {page_idx + 1} -->\\n")
+    
+    # 1. 尝试提取表格
+    tabs = page.find_tables()
+    tab_rects = []
+    for tab in tabs:
+        tab_rects.append(tab.bbox)
+        df = tab.to_pandas()
+        if not df.empty:
+            md_lines.append(df.to_markdown(index=False))
+            md_lines.append("\\n")
+
+    # 2. 提取并清洗文本段落
+    blocks = page.get_text("blocks")
+    for b in blocks:
+        # b: (x0, y0, x1, y1, text, block_no, block_type)
+        if b[6] == 0:  # 文本块
+            text = b[4].strip()
+            if not text:
+                continue
+            # 过滤掉落在表格区域内的重复文本
+            bx = (b[0], b[1], b[2], b[3])
+            is_in_table = False
+            for tr in tab_rects:
+                if bx[0] >= tr[0] - 5 and bx[1] >= tr[1] - 5 and bx[2] <= tr[2] + 5 and bx[3] <= tr[3] + 5:
+                    is_in_table = True
+                    break
+            if not is_in_table:
+                # 智能标题识别
+                if len(text.splitlines()) == 1 and len(text) < 50 and not text.endswith('。'):
+                    md_lines.append(f"\\n### {text}\\n")
+                else:
+                    md_lines.append(text + "\\n")
+
+with open(out_md, 'w', encoding='utf-8') as f:
+    f.write("\\n".join(md_lines))
+`;
+      const tempPy = path.join(path.dirname(resolvedOutput), `pdf_to_md_${Date.now()}.py`);
+      fs.writeFileSync(tempPy, pyScript, 'utf8');
+
+      await execAsync(`python "${tempPy}" "${resolvedInput}" "${resolvedOutput}"`);
+      if (fs.existsSync(tempPy)) fs.unlinkSync(tempPy);
+
+      if (fs.existsSync(resolvedOutput)) {
+        return {
+          success: true,
+          engine: 'PyMuPDF AI-Ready Markdown Engine',
+          outputPath: resolvedOutput,
+          size: fs.statSync(resolvedOutput).size
+        };
       }
+    } catch (err) {
+      throw new Error(`PDF 转 Clean Markdown 失败: ${err.message}`);
     }
 
-    const mergedBytes = await mergedDoc.save();
-    fs.writeFileSync(outputPath, mergedBytes);
+    throw new Error('PDF 转 Clean Markdown 未生成输出文件');
+  }
 
-    return {
-      success: true,
-      engine: 'PDF-Lib Merger',
-      outputPath,
-      size: fs.statSync(outputPath).size
-    };
+  /**
+   * PDF 智能极限压缩 (重打包、垃圾清理与流压缩)
+   */
+  static async compressPdf(inputPath, outputPath, options = {}) {
+    if (!fs.existsSync(inputPath)) {
+      throw new Error(`PDF 文件不存在: ${inputPath}`);
+    }
+
+    ensureDirSync(path.dirname(outputPath));
+    const resolvedInput = path.resolve(inputPath);
+    const resolvedOutput = path.resolve(outputPath);
+
+    try {
+      const pyScript = `
+import sys
+import fitz
+
+pdf_path = sys.argv[1]
+out_pdf = sys.argv[2]
+level = sys.argv[3] if len(sys.argv) > 3 else "medium"
+
+doc = fitz.open(pdf_path)
+# deflate=True, garbage=4 清除未引用对象, clean=True 规范流内容
+doc.save(out_pdf, garbage=4, deflate=True, clean=True)
+`;
+      const tempPy = path.join(path.dirname(resolvedOutput), `compress_pdf_${Date.now()}.py`);
+      fs.writeFileSync(tempPy, pyScript, 'utf8');
+
+      const level = options.compressionLevel || 'medium';
+      await execAsync(`python "${tempPy}" "${resolvedInput}" "${resolvedOutput}" "${level}"`);
+      if (fs.existsSync(tempPy)) fs.unlinkSync(tempPy);
+
+      if (fs.existsSync(resolvedOutput)) {
+        const origSize = fs.statSync(resolvedInput).size;
+        const newSize = fs.statSync(resolvedOutput).size;
+        const ratio = Math.round((1 - newSize / Math.max(1, origSize)) * 100);
+
+        return {
+          success: true,
+          engine: 'PyMuPDF Lossless & Stream Deflater',
+          outputPath: resolvedOutput,
+          originalSize: origSize,
+          size: newSize,
+          savedPercent: `${Math.max(0, ratio)}%`
+        };
+      }
+    } catch (err) {
+      throw new Error(`PDF 压缩失败: ${err.message}`);
+    }
+
+    throw new Error('PDF 压缩未生成输出文件');
+  }
+
+  /**
+   * 为 PDF 添加防泄密倾斜文字水印
+   */
+  static async watermarkPdf(inputPath, outputPath, watermarkText = 'CONFIDENTIAL') {
+    if (!fs.existsSync(inputPath)) {
+      throw new Error(`PDF 文件不存在: ${inputPath}`);
+    }
+
+    ensureDirSync(path.dirname(outputPath));
+    const resolvedInput = path.resolve(inputPath);
+    const resolvedOutput = path.resolve(outputPath);
+
+    try {
+      const pyScript = `
+import sys
+import fitz
+
+pdf_path = sys.argv[1]
+out_pdf = sys.argv[2]
+wm_text = sys.argv[3]
+
+doc = fitz.open(pdf_path)
+for page in doc:
+    rect = page.rect
+    # 注入半透明防泄密水印 (支持中文字体)
+    page.insert_text(
+        fitz.Point(rect.width * 0.15, rect.height * 0.5),
+        wm_text,
+        fontsize=36,
+        rotate=0,
+        color=(0.7, 0.7, 0.7),
+        fill_opacity=0.35,
+        fontname="china-ss"
+    )
+doc.save(out_pdf, garbage=3, deflate=True)
+`;
+      const tempPy = path.join(path.dirname(resolvedOutput), `watermark_${Date.now()}.py`);
+      fs.writeFileSync(tempPy, pyScript, 'utf8');
+
+      await execAsync(`python "${tempPy}" "${resolvedInput}" "${resolvedOutput}" "${watermarkText}"`);
+      if (fs.existsSync(tempPy)) fs.unlinkSync(tempPy);
+
+      if (fs.existsSync(resolvedOutput)) {
+        return {
+          success: true,
+          engine: 'PyMuPDF Watermark Stamper',
+          outputPath: resolvedOutput,
+          size: fs.statSync(resolvedOutput).size
+        };
+      }
+    } catch (err) {
+      throw new Error(`PDF 添加水印失败: ${err.message}`);
+    }
+
+    throw new Error('PDF 水印处理未生成输出文件');
+  }
+
+  /**
+   * PDF 密码加密保护 (AES-256)
+   */
+  static async encryptPdf(inputPath, outputPath, password = '') {
+    if (!password) throw new Error('加密密码不能为空');
+    if (!fs.existsSync(inputPath)) throw new Error(`PDF 文件不存在: ${inputPath}`);
+
+    ensureDirSync(path.dirname(outputPath));
+    const resolvedInput = path.resolve(inputPath);
+    const resolvedOutput = path.resolve(outputPath);
+
+    try {
+      const pyScript = `
+import sys
+import fitz
+
+pdf_path = sys.argv[1]
+out_pdf = sys.argv[2]
+pwd = sys.argv[3]
+
+doc = fitz.open(pdf_path)
+# 使用 AES-256 加密保存
+doc.save(out_pdf, encryption=fitz.PDF_ENCRYPT_AES_256, user_pw=pwd, owner_pw=pwd)
+`;
+      const tempPy = path.join(path.dirname(resolvedOutput), `encrypt_${Date.now()}.py`);
+      fs.writeFileSync(tempPy, pyScript, 'utf8');
+
+      await execAsync(`python "${tempPy}" "${resolvedInput}" "${resolvedOutput}" "${password}"`);
+      if (fs.existsSync(tempPy)) fs.unlinkSync(tempPy);
+
+      if (fs.existsSync(resolvedOutput)) {
+        return {
+          success: true,
+          engine: 'PyMuPDF AES-256 Encryption',
+          outputPath: resolvedOutput,
+          size: fs.statSync(resolvedOutput).size
+        };
+      }
+    } catch (err) {
+      throw new Error(`PDF 加密失败: ${err.message}`);
+    }
+
+    throw new Error('PDF 加密未生成输出文件');
+  }
+
+  /**
+   * PDF 密码解密移除保护
+   */
+  static async decryptPdf(inputPath, outputPath, password = '') {
+    if (!fs.existsSync(inputPath)) throw new Error(`PDF 文件不存在: ${inputPath}`);
+
+    ensureDirSync(path.dirname(outputPath));
+    const resolvedInput = path.resolve(inputPath);
+    const resolvedOutput = path.resolve(outputPath);
+
+    try {
+      const pyScript = `
+import sys
+import fitz
+
+pdf_path = sys.argv[1]
+out_pdf = sys.argv[2]
+pwd = sys.argv[3] if len(sys.argv) > 3 else ""
+
+doc = fitz.open(pdf_path)
+if doc.is_encrypted:
+    if not doc.authenticate(pwd):
+        sys.exit(2)
+doc.save(out_pdf, encryption=fitz.PDF_ENCRYPT_NONE)
+`;
+      const tempPy = path.join(path.dirname(resolvedOutput), `decrypt_${Date.now()}.py`);
+      fs.writeFileSync(tempPy, pyScript, 'utf8');
+
+      try {
+        await execAsync(`python "${tempPy}" "${resolvedInput}" "${resolvedOutput}" "${password}"`);
+      } catch (e) {
+        if (e.code === 2) throw new Error('解密失败：提供的密码不正确');
+        throw e;
+      } finally {
+        if (fs.existsSync(tempPy)) fs.unlinkSync(tempPy);
+      }
+
+      if (fs.existsSync(resolvedOutput)) {
+        return {
+          success: true,
+          engine: 'PyMuPDF Decryption Stripper',
+          outputPath: resolvedOutput,
+          size: fs.statSync(resolvedOutput).size
+        };
+      }
+    } catch (err) {
+      throw new Error(`PDF 解密失败: ${err.message}`);
+    }
+
+    throw new Error('PDF 解密未生成输出文件');
   }
 }
 

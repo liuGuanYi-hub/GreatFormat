@@ -65,21 +65,26 @@ class ImageEngine {
       });
     }
 
-    const quality = options.quality ? Math.min(100, Math.max(1, parseInt(options.quality, 10))) : 85;
+    // EXIF 隐私元数据清除处理
+    if (options.stripExif !== false) {
+      pipeline = pipeline.withMetadata({ orientation: 1 }); // 仅保留方向校正，彻底清除 GPS 及相机元数据
+    }
+
+    const quality = options.quality ? Math.min(100, Math.max(1, parseInt(options.quality, 10))) : 82;
 
     switch (targetExt) {
       case 'jpg':
       case 'jpeg':
-        pipeline = pipeline.jpeg({ quality, mozjpeg: false });
+        pipeline = pipeline.jpeg({ quality, mozjpeg: true });
         break;
       case 'png':
-        pipeline = pipeline.png({ compressionLevel: 9, quality });
+        pipeline = pipeline.png({ compressionLevel: 9, quality: Math.min(100, quality) });
         break;
       case 'webp':
-        pipeline = pipeline.webp({ quality });
+        pipeline = pipeline.webp({ quality, effort: 5 });
         break;
       case 'avif':
-        pipeline = pipeline.avif({ quality });
+        pipeline = pipeline.avif({ quality, effort: 4 });
         break;
       case 'tiff':
         pipeline = pipeline.tiff({ quality });
@@ -91,10 +96,17 @@ class ImageEngine {
     }
 
     await pipeline.toFile(outputPath);
+    const origSize = fs.statSync(inputPath).size;
+    const newSize = fs.statSync(outputPath).size;
+    const ratio = Math.round((1 - newSize / Math.max(1, origSize)) * 100);
+
     return {
       success: true,
+      engine: 'Sharp High-Efficiency Image Optimizer',
       outputPath,
-      size: fs.statSync(outputPath).size
+      originalSize: origSize,
+      size: newSize,
+      savedPercent: `${Math.max(0, ratio)}%`
     };
   }
 

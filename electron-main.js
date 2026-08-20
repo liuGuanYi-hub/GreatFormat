@@ -136,6 +136,32 @@ function registerIpcHandlers() {
   ipcMain.handle('greatformat:capabilities', async () => {
     return ConverterHub.getCapabilities();
   });
+
+  // Windows 资源管理器右键菜单一键集成
+  ipcMain.handle('greatformat:toggle-context-menu', async (event, enable) => {
+    if (process.platform !== 'win32') return { success: false, error: '仅支持 Windows 系统' };
+    const { exec } = require('child_process');
+    const util = require('util');
+    const execAsync = util.promisify(exec);
+
+    const exePath = process.execPath;
+    const iconPath = path.join(__dirname, 'src/assets/icon.ico');
+
+    try {
+      if (enable) {
+        // 注册到当前用户的注册表
+        await execAsync(`reg add "HKCU\\Software\\Classes\\*\\shell\\GreatFormat" /ve /d "用 GreatFormat 转换文件" /f`);
+        await execAsync(`reg add "HKCU\\Software\\Classes\\*\\shell\\GreatFormat" /v "Icon" /d "${iconPath}" /f`);
+        await execAsync(`reg add "HKCU\\Software\\Classes\\*\\shell\\GreatFormat\\command" /ve /d "\\"${exePath}\\" \\"%1\\"" /f`);
+        return { success: true, enabled: true };
+      } else {
+        await execAsync(`reg delete "HKCU\\Software\\Classes\\*\\shell\\GreatFormat" /f`);
+        return { success: true, enabled: false };
+      }
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
 }
 
 app.whenReady().then(() => {

@@ -316,6 +316,27 @@ body {
   height: 100%;
 }
 
+/* 设置按钮 */
+.settings-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0, 113, 227, 0.08);
+  border: 1px solid rgba(0, 113, 227, 0.2);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--apple-blue);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-btn:hover {
+  background: rgba(0, 113, 227, 0.15);
+  border-color: var(--apple-blue);
+}
+
 /* 2D 仗助全身立绘展示区 */
 .fullbody-wrapper {
   position: relative;
@@ -325,6 +346,25 @@ body {
   align-items: flex-end;
   justify-content: center;
   margin-bottom: 12px;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fullbody-wrapper:hover .mascot-fullbody {
+  transform: scale(1.03);
+  filter: drop-shadow(0 8px 20px rgba(175, 82, 222, 0.45));
+}
+
+/* 仗助立绘点击互动与眨眼动画 */
+.fullbody-wrapper.blink-bounce {
+  animation: josukeBlinkBounce 0.45s ease;
+}
+
+@keyframes josukeBlinkBounce {
+  0% { transform: scale(1); }
+  35% { transform: scale(0.94) translateY(4px); }
+  65% { transform: scale(1.06) translateY(-6px); }
+  100% { transform: scale(1) translateY(0); }
 }
 
 .stand-aura-glow {
@@ -1209,6 +1249,119 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+/* ==========================================================================
+   高级设置模态框样式 (Settings Modal)
+   ========================================================================== */
+.modal-card-wide {
+  max-width: 620px;
+  width: 92%;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.settings-group {
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+
+.settings-group-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.setting-item {
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setting-item:last-child {
+  margin-bottom: 0;
+}
+
+.setting-item.checkbox-item {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 6px;
+  cursor: pointer;
+}
+
+.setting-item.checkbox-item label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.setting-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.setting-hint {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-top: 6px;
+  line-height: 1.35;
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.apple-slider {
+  flex: 1;
+  accent-color: var(--apple-blue);
+  height: 4px;
+}
+
+.slider-val {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--apple-blue);
+  width: 32px;
+  text-align: right;
+}
+
+.apple-input {
+  background: #ffffff;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+  padding: 5px 8px;
+  font-size: 11px;
+  color: var(--text-primary);
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.apple-input:focus {
+  border-color: var(--apple-blue);
+  box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.15);
+}
+
+.setting-select {
+  width: 100%;
+  font-size: 11px;
+  padding: 4px 8px;
 }
 
 /* ==========================================================================

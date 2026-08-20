@@ -555,6 +555,125 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // 东方仗助立绘点击彩蛋台词库 (5套经典互动)
+  const CLICK_EASTER_EGGS = [
+    {
+      badge: '发型自尊',
+      text: '「このヘアスタイルがサザエさんみてえだとォ！？オレの髪型をケナすやつは許せねえ！」\n（你敢说我的发型像海螺小姐！？绝对不能原谅任何嘲笑我发型的人！）'
+    },
+    {
+      badge: '守护杜王町',
+      text: '「杜王町はこのオレが守る！グレートに行こうぜ！」\n（由我来守护杜王町的和平！这就出发，太 Great 了！）'
+    },
+    {
+      badge: '吐槽承太郎',
+      text: '「承太郎さん、あの人は本当に頼りになるぜ…だが少し真面目すぎるよな！」\n（承太郎先生真的非常可靠…不过有时候未免也太严肃了吧！）'
+    },
+    {
+      badge: '疯狂钻石',
+      text: '「クレイジー・ダイヤモンド！ぶち壊して、元通りに直すだけだ！」\n（疯狂钻石！只要把它打碎，再完美修好就行了！）'
+    },
+    {
+      badge: '日常互动',
+      text: '「おいおい、そんなに見つめられると照れるぜ…何か直したいファイルでもあるのか？」\n（喂喂，被这么一直盯着看也是会害羞的…有什么需要我修复的文件吗？）'
+    }
+  ];
+
+  // 东方仗助立绘点击互动 (眨眼弹跳 + 随机经典彩蛋台词)
+  if (mascotAvatar) {
+    mascotAvatar.addEventListener('click', () => {
+      // 触发眨眼弹跳微动效
+      mascotAvatar.classList.remove('blink-bounce');
+      void mascotAvatar.offsetWidth; // 触发 reflow
+      mascotAvatar.classList.add('blink-bounce');
+
+      // 随机挑选一句经典彩蛋
+      const egg = CLICK_EASTER_EGGS[Math.floor(Math.random() * CLICK_EASTER_EGGS.length)];
+      if (standStatusBadge) {
+        standStatusBadge.textContent = egg.badge;
+        standStatusBadge.style.background = '#ff2d55';
+      }
+      if (mascotSpeech) mascotSpeech.innerText = egg.text;
+
+      // 伴随柔和原声音效与拟声词
+      playAudioFile('great.mp3', 350);
+      spawnMangaSfx('グレート！');
+    });
+  }
+
+  // 高级设置相关 DOM
+  const openSettingsBtn = document.getElementById('openSettingsBtn');
+  const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+  const settingsModal = document.getElementById('settingsModal');
+  const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+  const settingQualitySlider = document.getElementById('settingQualitySlider');
+  const settingQualityVal = document.getElementById('settingQualityVal');
+  const settingStripExif = document.getElementById('settingStripExif');
+  const settingAudioBitrate = document.getElementById('settingAudioBitrate');
+  const settingTargetSize = document.getElementById('settingTargetSize');
+  const settingWatermarkText = document.getElementById('settingWatermarkText');
+  const settingPdfPassword = document.getElementById('settingPdfPassword');
+  const settingContextMenu = document.getElementById('settingContextMenu');
+
+  // 全局高级预设对象
+  let advancedSettings = {
+    quality: 82,
+    stripExif: true,
+    audioBitrate: '192k',
+    targetSize: 'none',
+    watermarkText: 'CONFIDENTIAL',
+    pdfPassword: '',
+    contextMenu: false
+  };
+
+  // 质量滑块数值联动
+  if (settingQualitySlider && settingQualityVal) {
+    settingQualitySlider.addEventListener('input', (e) => {
+      settingQualityVal.textContent = `${e.target.value}%`;
+    });
+  }
+
+  // 打开设置
+  if (openSettingsBtn && settingsModal) {
+    openSettingsBtn.addEventListener('click', () => {
+      settingsModal.classList.add('open');
+    });
+  }
+
+  // 关闭设置
+  if (closeSettingsBtn && settingsModal) {
+    closeSettingsBtn.addEventListener('click', () => {
+      settingsModal.classList.remove('open');
+    });
+  }
+
+  // 保存设置并应用
+  if (saveSettingsBtn && settingsModal) {
+    saveSettingsBtn.addEventListener('click', async () => {
+      advancedSettings = {
+        quality: parseInt(settingQualitySlider?.value || 82, 10),
+        stripExif: settingStripExif?.checked ?? true,
+        audioBitrate: settingAudioBitrate?.value || '192k',
+        targetSize: settingTargetSize?.value || 'none',
+        watermarkText: settingWatermarkText?.value || 'CONFIDENTIAL',
+        pdfPassword: settingPdfPassword?.value || '',
+        contextMenu: settingContextMenu?.checked ?? false
+      };
+
+      // 切换 Windows 资源管理器右键菜单
+      if (window.electronAPI?.toggleContextMenu) {
+        try {
+          await window.electronAPI.toggleContextMenu(advancedSettings.contextMenu);
+        } catch (e) {
+          console.warn('[Settings] toggleContextMenu error:', e);
+        }
+      }
+
+      settingsModal.classList.remove('open');
+      setMascotState('idle', '「設定を保存したぜ！グレートな変換を続けよう！」\n（高级预设已保存并生效！继续享受 Great 的转换吧！）');
+    });
+  }
+
   // 拖拽与文件选择
   dropZone.addEventListener('click', () => fileInput.click());
 
@@ -648,7 +767,12 @@ document.addEventListener('DOMContentLoaded', () => {
           const res = await window.electronAPI.convertFile({
             inputPath: task.path,
             targetFormat: task.target,
-            outputDir: customSaveDir
+            outputDir: customSaveDir,
+            quality: advancedSettings.quality,
+            stripExif: advancedSettings.stripExif,
+            audioBitrate: advancedSettings.audioBitrate,
+            watermarkText: advancedSettings.watermarkText,
+            password: advancedSettings.pdfPassword
           });
 
           if (res.success) {

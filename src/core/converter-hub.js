@@ -179,7 +179,7 @@ class ConverterHub {
         result = await DataEngine.convertDataOrSpreadsheet(inputPath, outputPath, options);
       }
     }
-    // 8. PDF 全能工具箱 (PDF ➔ Images / Word / Excel / Split)
+    // 8. PDF 全能工具箱 (PDF ➔ Images / Word / Excel / Split / Clean-MD / Compress / Watermark / Crypt)
     else if (sourceExt === 'pdf') {
       if (['png', 'jpg', 'jpeg', 'webp'].includes(normalizedTarget)) {
         const outDir = options.outputDir || path.join(path.dirname(inputPath), `${path.basename(inputPath, '.pdf')}_images`);
@@ -188,6 +188,21 @@ class ConverterHub {
         result = await PDFEngine.pdfToDocx(inputPath, outputPath);
       } else if (['xlsx', 'xls'].includes(normalizedTarget)) {
         result = await PDFEngine.pdfToExcel(inputPath, outputPath);
+      } else if (['clean-md', 'clean_md', 'md', 'markdown'].includes(normalizedTarget)) {
+        const finalMdPath = outputPath.endsWith('.md') ? outputPath : outputPath + '.md';
+        result = await PDFEngine.pdfToCleanMarkdown(inputPath, finalMdPath);
+      } else if (['compress', 'compressed'].includes(normalizedTarget)) {
+        const compPath = outputPath.endsWith('.pdf') ? outputPath.replace(/\.pdf$/, '_compressed.pdf') : outputPath + '.pdf';
+        result = await PDFEngine.compressPdf(inputPath, compPath, options);
+      } else if (normalizedTarget === 'watermark') {
+        const wmPath = outputPath.endsWith('.pdf') ? outputPath.replace(/\.pdf$/, '_watermarked.pdf') : outputPath + '.pdf';
+        result = await PDFEngine.watermarkPdf(inputPath, wmPath, options.watermarkText || 'CONFIDENTIAL');
+      } else if (normalizedTarget === 'encrypt') {
+        const encPath = outputPath.endsWith('.pdf') ? outputPath.replace(/\.pdf$/, '_encrypted.pdf') : outputPath + '.pdf';
+        result = await PDFEngine.encryptPdf(inputPath, encPath, options.password || '123456');
+      } else if (normalizedTarget === 'decrypt') {
+        const decPath = outputPath.endsWith('.pdf') ? outputPath.replace(/\.pdf$/, '_decrypted.pdf') : outputPath + '.pdf';
+        result = await PDFEngine.decryptPdf(inputPath, decPath, options.password || '');
       } else if (normalizedTarget === 'split') {
         const outDir = options.outputDir || path.join(path.dirname(inputPath), `${path.basename(inputPath, '.pdf')}_pages`);
         result = await PDFEngine.splitPdf(inputPath, outDir);

@@ -15,5 +15,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectDirectory: () => ipcRenderer.invoke('greatformat:select-dir'),
   getCapabilities: () => ipcRenderer.invoke('greatformat:capabilities'),
   openPath: (filePath) => ipcRenderer.invoke('greatformat:open-path', filePath),
-  showItemInFolder: (filePath) => ipcRenderer.invoke('greatformat:show-in-folder', filePath)
+  showItemInFolder: (filePath) => ipcRenderer.invoke('greatformat:show-in-folder', filePath),
+  toggleContextMenu: (enable) => ipcRenderer.invoke('greatformat:toggle-context-menu', enable)
 });
