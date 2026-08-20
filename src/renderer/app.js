@@ -111,22 +111,32 @@ document.addEventListener('DOMContentLoaded', () => {
     '3gp': ['mp4', 'mp3', 'aac']
   };
 
-  // JOJO 东方仗助日语台词库
+  // JOJO 东方仗助日语台词库 (与番剧原声音频 1:1 精准对应)
   const JOJO_LINES = {
     IDLE: {
-      text: '「ファイルをドラッグ＆ドロップしてくれ！グレートに行こうぜ！」\n（把需要重组的文件拖进来吧！这可真是太 Great 了！）'
+      text: '「よっ！アンジェロ！ファイルをドラッグ＆ドロップしてくれ！」\n（哟！安杰罗！把需要重组的文件拖进来吧！）',
+      audio: 'yo_angelo.mp3',
+      sfx: 'よっ！'
     },
     DRAG: {
-      text: '「クレイジー・ダイヤモンド！スタンド出現！」\n（替身出击！疯狂钻石准备拆解与重构！）'
+      text: '「クレイジー・ダイヤモンド！プレッシャーを跳ね返すぜ！」\n（替身出击！疯狂钻石准备拆解与重构！）',
+      audio: 'pressure_quote.mp3',
+      sfx: 'ゴゴゴゴ'
     },
     CONVERTING: {
-      text: '「ドララララララララララララッ！！DORARARARA！！」\n（ドラララ！疯狂钻石正在高速原子重组中！）'
+      text: '「ドララララララララララララッ！！DORARARARA！！」\n（ドラララ！疯狂钻石正在高速原子重组中！）',
+      audio: 'dorarara.mp3',
+      sfx: 'ドラララ！'
     },
     SUCCESS: {
-      text: '「グレートですよ、こいつはァ！完璧に直ったぜ！」\n（这可真是太 Great 了！所有文件已完美重构完毕！）'
+      text: '「グレートですよ、こいつはァ！完璧に直ったぜ！」\n（这可真是太 Great 了！所有文件已完美重构完毕！）',
+      audio: 'great_desuyo.mp3',
+      sfx: 'グレート！'
     },
     ERROR: {
-      text: '「な、何だとォ！？この仗助サマの髪型をケナしたなァ！？」\n（可恶！遇到了阻碍！点击查看详细排查信息）'
+      text: '「な、何だとォ！？この仗助サマの髪型をケナしたなァ！？」\n（可恶！遇到了阻碍！点击查看详细排查信息）',
+      audio: 'gureto_daze.mp3',
+      sfx: 'ドドドド'
     }
   };
 
@@ -249,7 +259,8 @@ document.addEventListener('DOMContentLoaded', () => {
           standStatusBadge.style.background = '#ff2d55';
         }
         if (mascotSpeech) mascotSpeech.innerText = JOJO_LINES.DRAG.text;
-        spawnMangaSfx('ゴゴゴゴ');
+        playAudioFile(JOJO_LINES.DRAG.audio, 260);
+        spawnMangaSfx(JOJO_LINES.DRAG.sfx);
         break;
       case 'converting':
         stopVoiceAudio();
@@ -261,7 +272,8 @@ document.addEventListener('DOMContentLoaded', () => {
           standStatusBadge.style.color = '#111827';
         }
         if (mascotSpeech) mascotSpeech.innerText = customText || JOJO_LINES.CONVERTING.text;
-        playAudioFile('dorarara.mp3');
+        playAudioFile(JOJO_LINES.CONVERTING.audio, 200);
+        spawnMangaSfx(JOJO_LINES.CONVERTING.sfx);
         break;
       case 'success':
         stopVoiceAudio();
@@ -272,8 +284,8 @@ document.addEventListener('DOMContentLoaded', () => {
           standStatusBadge.style.color = '#ffffff';
         }
         if (mascotSpeech) mascotSpeech.innerText = customText || JOJO_LINES.SUCCESS.text;
-        playAudioFile('great.mp3');
-        spawnMangaSfx('グレート！');
+        playAudioFile(JOJO_LINES.SUCCESS.audio, 280);
+        spawnMangaSfx(JOJO_LINES.SUCCESS.sfx);
         break;
       case 'error':
         stopVoiceAudio();
@@ -284,7 +296,8 @@ document.addEventListener('DOMContentLoaded', () => {
           standStatusBadge.style.color = '#ffffff';
         }
         if (mascotSpeech) mascotSpeech.innerText = customText || JOJO_LINES.ERROR.text;
-        spawnMangaSfx('ドドドド');
+        playAudioFile(JOJO_LINES.ERROR.audio, 250);
+        spawnMangaSfx(JOJO_LINES.ERROR.sfx);
         break;
     }
   }
@@ -555,31 +568,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 东方仗助立绘点击彩蛋台词库 (5套经典互动)
+  // 东方仗助立绘点击彩蛋台词库 (5套经典互动，全部绑定专属番剧原声)
   const CLICK_EASTER_EGGS = [
     {
-      badge: '发型自尊',
-      text: '「このヘアスタイルがサザエさんみてえだとォ！？オレの髪型をケナすやつは許せねえ！」\n（你敢说我的发型像海螺小姐！？绝对不能原谅任何嘲笑我发型的人！）'
-    },
-    {
       badge: '守护杜王町',
-      text: '「杜王町はこのオレが守る！グレートに行こうぜ！」\n（由我来守护杜王町的和平！这就出发，太 Great 了！）'
+      text: '「杜王町はこのオレが守る！グレートに行こうぜ！」\n（由我来守护杜王町的和平！这就出发，太 Great 了！）',
+      audio: 'gureto_daze.mp3',
+      sfx: 'グレート！'
     },
     {
-      badge: '吐槽承太郎',
-      text: '「承太郎さん、あの人は本当に頼りになるぜ…だが少し真面目すぎるよな！」\n（承太郎先生真的非常可靠…不过有时候未免也太严肃了吧！）'
+      badge: '极致爽快',
+      text: '「新年元旦の朝に新しいパンツを穿いたような爽快な気分だぜ！」\n（就像是新年元旦早晨换上了新内裤一样，浑身舒爽痛快啊！）',
+      audio: 'underwear_quote.mp3',
+      sfx: 'スッキリ！'
     },
     {
       badge: '疯狂钻石',
-      text: '「クレイジー・ダイヤモンド！ぶち壊して、元通りに直すだけだ！」\n（疯狂钻石！只要把它打碎，再完美修好就行了！）'
+      text: '「オレのスタンド、クレイジー・ダイヤモンド！プレッシャーを跳ね返すぜ！」\n（疯狂钻石！只要把它拆解打碎，再完美修好就行了！）',
+      audio: 'pressure_quote.mp3',
+      sfx: 'ゴゴゴゴ'
     },
     {
-      badge: '日常互动',
-      text: '「おいおい、そんなに見つめられると照れるぜ…何か直したいファイルでもあるのか？」\n（喂喂，被这么一直盯着看也是会害羞的…有什么需要我修复的文件吗？）'
+      badge: '完美修复',
+      text: '「グレートですよ、こいつはァ！完璧に直ったぜ！」\n（这可真是太 Great 了！所有文件已被完美修复！）',
+      audio: 'great_desuyo.mp3',
+      sfx: 'グレート！'
+    },
+    {
+      badge: '日常打招呼',
+      text: '「よっ！アンジェロ！何か直したいファイルでもあるのか？」\n（哟！安杰罗！有什么需要我来修复重构的文件吗？）',
+      audio: 'yo_angelo.mp3',
+      sfx: 'よっ！'
     }
   ];
 
-  // 东方仗助立绘点击互动 (眨眼弹跳 + 随机经典彩蛋台词)
+  // 东方仗助立绘点击互动 (眨眼弹跳 + 随机专属番剧原声台词)
   if (mascotAvatar) {
     mascotAvatar.addEventListener('click', () => {
       // 触发眨眼弹跳微动效
@@ -595,9 +618,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (mascotSpeech) mascotSpeech.innerText = egg.text;
 
-      // 伴随柔和原声音效与拟声词
-      playAudioFile('great.mp3', 350);
-      spawnMangaSfx('グレート！');
+      // 播放台词对应的专属番剧原声音效与拟声词
+      playAudioFile(egg.audio, 280);
+      spawnMangaSfx(egg.sfx);
     });
   }
 
