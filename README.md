@@ -12,6 +12,27 @@
 ![Offline](https://img.shields.io/badge/Privacy-100%25%20Local%20Offline-brightgreen.svg)
 ![Voice](https://img.shields.io/badge/Audio-Authentic%20Anime%20Voices-orange.svg)
 
+<br><br>
+
+### 📸 软件界面效果全览 (Preview)
+
+![GreatFormat 主界面预览](docs/images/screenshot_main.png)
+
+<br>
+
+<table align="center">
+  <tr>
+    <td align="center" width="50%">
+      <b>⚡ 多文件批量原子重构</b><br><br>
+      <img src="docs/images/screenshot_tasks.png" alt="任务队列与格式选择" width="100%">
+    </td>
+    <td align="center" width="50%">
+      <b>⚙️ 高级参数 & Windows 右键集成</b><br><br>
+      <img src="docs/images/screenshot_settings.png" alt="高级预设与系统集成" width="100%">
+    </td>
+  </tr>
+</table>
+
 </div>
 
 ---
