@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     ERROR: {
       text: '「な、何だとォ！？この仗助サマの髪型をケナしたなァ！？」\n（可恶！遇到了阻碍！点击查看详细排查信息）',
-      audio: 'dora_single.mp3',
+      audio: 'josuke_rage.mp3',
       sfx: 'ドドドド'
     }
   };
