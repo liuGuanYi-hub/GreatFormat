@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
     '3gp': ['mp4', 'mp3', 'aac']
   };
 
-  // JOJO 东方仗助日语台词库 (与番剧原声音频 1:1 精准对应)
+  // JOJO 东方仗助日语台词库 (与番剧原声音频 1:1 精准对应，无任何重复)
   const JOJO_LINES = {
     IDLE: {
       text: '「よっ！アンジェロ！ファイルをドラッグ＆ドロップしてくれ！」\n（哟！安杰罗！把需要重组的文件拖进来吧！）',
@@ -119,8 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
       sfx: 'よっ！'
     },
     DRAG: {
-      text: '「クレイジー・ダイヤモンド！プレッシャーを跳ね返すぜ！」\n（替身出击！疯狂钻石准备拆解与重构！）',
-      audio: 'pressure_quote.mp3',
+      text: '「クレイジー・ダイヤモンド！スタンド出現！」\n（替身出击！疯狂钻石准备拆解与重构！）',
+      audio: 'crazy_diamond.mp3',
       sfx: 'ゴゴゴゴ'
     },
     CONVERTING: {
@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     ERROR: {
       text: '「な、何だとォ！？この仗助サマの髪型をケナしたなァ！？」\n（可恶！遇到了阻碍！点击查看详细排查信息）',
-      audio: 'gureto_daze.mp3',
+      audio: 'dora_single.mp3',
       sfx: 'ドドドド'
     }
   };
@@ -568,7 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 东方仗助立绘点击彩蛋台词库 (5套经典互动，全部绑定专属番剧原声)
+  // 东方仗助立绘点击彩蛋台词库 (5套经典互动，全部绑定专属独立番剧原声)
   const CLICK_EASTER_EGGS = [
     {
       badge: '守护杜王町',
@@ -579,14 +579,14 @@ document.addEventListener('DOMContentLoaded', () => {
     {
       badge: '极致爽快',
       text: '「新年元旦の朝に新しいパンツを穿いたような爽快な気分だぜ！」\n（就像是新年元旦早晨换上了新内裤一样，浑身舒爽痛快啊！）',
-      audio: 'underwear_quote.mp3',
+      audio: 'underwear_quote_clean.mp3',
       sfx: 'スッキリ！'
     },
     {
-      badge: '疯狂钻石',
-      text: '「オレのスタンド、クレイジー・ダイヤモンド！プレッシャーを跳ね返すぜ！」\n（疯狂钻石！只要把它拆解打碎，再完美修好就行了！）',
-      audio: 'pressure_quote.mp3',
-      sfx: 'ゴゴゴゴ'
+      badge: '迎难而上',
+      text: '「オレのスタンド、クレイジー・ダイヤモンドはプレッシャーを跳ね返すぜ！」\n（替身出击！疯狂钻石可以抵御一切压力！）',
+      audio: 'pressure_action.mp3',
+      sfx: 'ズギューン！'
     },
     {
       badge: '完美修复',
