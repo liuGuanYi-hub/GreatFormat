@@ -14,6 +14,7 @@ function createWindow() {
     minHeight: 600,
     backgroundColor: '#f5f5f7',
     title: 'GreatFormat 太棒格式 - 疯狂钻石主题转换器',
+    icon: path.join(__dirname, 'src/assets/icon.ico'),
     titleBarStyle: 'hiddenInset',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

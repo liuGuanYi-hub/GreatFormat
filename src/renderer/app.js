@@ -131,12 +131,14 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   let activeVoiceAudio = null;
+  let voiceFadeTimer = null;
+  const TARGET_VOICE_VOLUME = 0.60; // 舒适柔和音量，防止吓人一跳
 
-  // 播放原声音频文件 (带平滑淡入渐变)
-  function playAudioFile(fileName, fadeInMs = 100) {
+  // 播放原声音频文件 (柔和渐入 Fade-In + 自然结尾渐出 Fade-Out)
+  function playAudioFile(fileName, fadeInMs = 380, targetMaxVol = TARGET_VOICE_VOLUME) {
     if (!audioEnabled) return null;
     try {
-      stopVoiceAudio(160);
+      stopVoiceAudio(240);
       const audio = new Audio(`../assets/audio/${fileName}`);
       audio.volume = 0.0;
       activeVoiceAudio = audio;
@@ -145,12 +147,33 @@ document.addEventListener('DOMContentLoaded', () => {
       if (playPromise) {
         playPromise.then(() => {
           const start = Date.now();
-          const timer = setInterval(() => {
+          // 平滑渐入 (S-Curve / Sine Smooth Fade-In)
+          const inTimer = setInterval(() => {
+            if (activeVoiceAudio !== audio) {
+              clearInterval(inTimer);
+              return;
+            }
             const elapsed = Date.now() - start;
-            const factor = Math.min(1, elapsed / fadeInMs);
-            audio.volume = factor;
-            if (factor >= 1) clearInterval(timer);
+            const progress = Math.min(1, elapsed / fadeInMs);
+            // 正弦平滑插值曲线
+            const curve = Math.sin(progress * (Math.PI / 2));
+            audio.volume = Math.min(1, Math.max(0, curve * targetMaxVol));
+            if (progress >= 1) clearInterval(inTimer);
           }, 16);
+
+          // 监听音频播放进度，在接近尾声时（剩余 420ms）自动平滑淡出
+          const checkNaturalEnd = () => {
+            if (activeVoiceAudio !== audio || audio.paused) {
+              audio.removeEventListener('timeupdate', checkNaturalEnd);
+              return;
+            }
+            if (audio.duration && (audio.duration - audio.currentTime <= 0.42)) {
+              audio.removeEventListener('timeupdate', checkNaturalEnd);
+              stopVoiceAudio(380);
+            }
+          };
+          audio.addEventListener('timeupdate', checkNaturalEnd);
+
         }).catch(err => console.warn(`[Audio] Play ${fileName} failed:`, err.message));
       }
       return audio;
@@ -160,20 +183,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 停止语音 (带平滑淡出渐变)
-  function stopVoiceAudio(fadeOutMs = 200) {
+  // 停止语音 (柔和平滑渐出 Fade-Out)
+  function stopVoiceAudio(fadeOutMs = 300) {
     if (activeVoiceAudio) {
       const targetAudio = activeVoiceAudio;
       activeVoiceAudio = null;
+      if (voiceFadeTimer) {
+        clearInterval(voiceFadeTimer);
+        voiceFadeTimer = null;
+      }
+
       const startVol = targetAudio.volume;
       const start = Date.now();
 
-      const timer = setInterval(() => {
+      voiceFadeTimer = setInterval(() => {
         const elapsed = Date.now() - start;
-        const factor = Math.min(1, elapsed / fadeOutMs);
-        targetAudio.volume = Math.max(0, startVol * (1 - factor));
-        if (factor >= 1) {
-          clearInterval(timer);
+        const progress = Math.min(1, elapsed / fadeOutMs);
+        // 余弦平滑衰减曲线
+        const curve = Math.cos(progress * (Math.PI / 2));
+        targetAudio.volume = Math.max(0, startVol * curve);
+
+        if (progress >= 1) {
+          clearInterval(voiceFadeTimer);
+          voiceFadeTimer = null;
           try {
             targetAudio.pause();
             targetAudio.currentTime = 0;
