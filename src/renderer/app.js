@@ -440,12 +440,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const badgeClass = getBadgeClass(task.ext);
+      const isPdf = task.ext === 'pdf';
 
       item.innerHTML = `
         <div class="task-info">
           <div class="file-badge ${badgeClass}">${task.ext}</div>
           <div class="file-detail">
-            <div class="file-name" title="${task.path}">${task.name}</div>
+            <div class="file-name" title="${task.path}">
+              ${task.name}
+              ${isPdf ? `<button class="page-manage-btn" data-id="${task.id}" title="可视化调整页面顺序、旋转或删页">📄 页面管理</button>` : ''}
+            </div>
             <div class="file-meta-row">
               <span class="file-size">${formatSize(task.size)}</span>
               <span>·</span>
@@ -469,6 +473,16 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
 
       taskList.appendChild(item);
+    });
+
+    // 绑定 PDF 页面管理按钮
+    document.querySelectorAll('.page-manage-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        const task = tasks.find(t => t.id === id);
+        if (task) openPdfOrganizer(task);
+      });
     });
 
     // 绑定项目移除事件
@@ -510,6 +524,246 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
+
+  // ==========================================================================
+  // PDF 页面可视化管理工作台 (PDF Page Organizer)
+  // ==========================================================================
+  const pdfOrganizerModal = document.getElementById('pdfOrganizerModal');
+  const organizerDocTitle = document.getElementById('organizerDocTitle');
+  const organizerPageCount = document.getElementById('organizerPageCount');
+  const pdfPageGrid = document.getElementById('pdfPageGrid');
+  const closeOrganizerBtn = document.getElementById('closeOrganizerBtn');
+  const cancelOrganizerBtn = document.getElementById('cancelOrganizerBtn');
+  const applyOrganizerBtn = document.getElementById('applyOrganizerBtn');
+  const organizerRotateAllBtn = document.getElementById('organizerRotateAllBtn');
+  const organizerResetBtn = document.getElementById('organizerResetBtn');
+
+  let currentOrganizerTask = null;
+  let rawOrganizerPages = []; // 初始备份
+  let organizerPages = [];    // 当前工作数据: [{ id, originalIndex, pageNumber, thumbnail, rotateOffset }]
+  let dragSrcEl = null;
+
+  async function openPdfOrganizer(task) {
+    currentOrganizerTask = task;
+    organizerDocTitle.textContent = `📄 PDF 页面管理: ${task.name}`;
+    pdfPageGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">⚡ 正在使用 PyMuPDF 极速渲染页面缩略图...</div>';
+    pdfOrganizerModal.classList.add('open');
+
+    try {
+      if (window.electronAPI?.getPdfThumbnails) {
+        const res = await window.electronAPI.getPdfThumbnails(task.path);
+        if (res.success && res.pages) {
+          rawOrganizerPages = res.pages.map((p, idx) => ({
+            id: `p-${idx}-${Date.now()}`,
+            originalIndex: p.pageIndex,
+            pageNumber: p.pageNumber,
+            thumbnail: p.thumbnail,
+            rotateOffset: 0
+          }));
+          organizerPages = JSON.parse(JSON.stringify(rawOrganizerPages));
+          renderOrganizerGrid();
+          return;
+        }
+      }
+      pdfPageGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #ff3b30;">无法生成缩略图，请确认源文件存在且未损坏。</div>';
+    } catch (err) {
+      pdfPageGrid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #ff3b30;">渲染失败: ${err.message}</div>`;
+    }
+  }
+
+  function renderOrganizerGrid() {
+    pdfPageGrid.innerHTML = '';
+    organizerPageCount.textContent = `${organizerPages.length} 页`;
+
+    if (organizerPages.length === 0) {
+      pdfPageGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">所有页面已被删除。点击“还原初始”可重新载入。</div>';
+      return;
+    }
+
+    organizerPages.forEach((page, displayIndex) => {
+      const card = document.createElement('div');
+      card.className = 'pdf-page-card';
+      card.draggable = true;
+      card.setAttribute('data-index', displayIndex);
+
+      card.innerHTML = `
+        <div class="page-preview-box">
+          <img src="${page.thumbnail}" class="page-thumbnail-img" style="transform: rotate(${page.rotateOffset}deg);" alt="第 ${page.pageNumber} 页">
+        </div>
+        <div class="page-card-footer">
+          <span class="page-number-label">第 ${displayIndex + 1} 页 (原P${page.pageNumber})</span>
+          <div class="page-action-btns">
+            <button class="page-icon-btn rotate-btn" title="顺时针旋转 90°">🔄</button>
+            <button class="page-icon-btn delete delete-btn" title="删除此页">🗑️</button>
+          </div>
+        </div>
+      `;
+
+      // 旋转单页
+      card.querySelector('.rotate-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        page.rotateOffset = (page.rotateOffset + 90) % 360;
+        const img = card.querySelector('.page-thumbnail-img');
+        if (img) img.style.transform = `rotate(${page.rotateOffset}deg)`;
+      });
+
+      // 删除单页
+      card.querySelector('.delete-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        organizerPages.splice(displayIndex, 1);
+        renderOrganizerGrid();
+      });
+
+      // HTML5 Drag & Drop
+      card.addEventListener('dragstart', (e) => {
+        dragSrcEl = card;
+        e.dataTransfer.effectAllowed = 'move';
+        card.classList.add('dragging');
+      });
+
+      card.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        card.classList.add('drag-over-target');
+      });
+
+      card.addEventListener('dragleave', () => {
+        card.classList.remove('drag-over-target');
+      });
+
+      card.addEventListener('drop', (e) => {
+        e.stopPropagation();
+        card.classList.remove('drag-over-target');
+        if (dragSrcEl !== card) {
+          const fromIndex = parseInt(dragSrcEl.getAttribute('data-index'), 10);
+          const toIndex = parseInt(card.getAttribute('data-index'), 10);
+          const moved = organizerPages.splice(fromIndex, 1)[0];
+          organizerPages.splice(toIndex, 0, moved);
+          renderOrganizerGrid();
+        }
+      });
+
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        document.querySelectorAll('.pdf-page-card').forEach(c => c.classList.remove('drag-over-target'));
+      });
+
+      pdfPageGrid.appendChild(card);
+    });
+  }
+
+  // 全体顺时针旋转 90°
+  organizerRotateAllBtn?.addEventListener('click', () => {
+    organizerPages.forEach(p => {
+      p.rotateOffset = (p.rotateOffset + 90) % 360;
+    });
+    renderOrganizerGrid();
+  });
+
+  // 还原初始
+  organizerResetBtn?.addEventListener('click', () => {
+    organizerPages = JSON.parse(JSON.stringify(rawOrganizerPages));
+    renderOrganizerGrid();
+  });
+
+  // 关闭工作台
+  const closeOrganizer = () => pdfOrganizerModal.classList.remove('open');
+  closeOrganizerBtn?.addEventListener('click', closeOrganizer);
+  cancelOrganizerBtn?.addEventListener('click', closeOrganizer);
+
+  // 应用重排并保存
+  applyOrganizerBtn?.addEventListener('click', async () => {
+    if (!currentOrganizerTask || organizerPages.length === 0) {
+      alert('请至少保留一个页面！');
+      return;
+    }
+
+    applyOrganizerBtn.disabled = true;
+    applyOrganizerBtn.textContent = '⚡ 疯狂钻石重构中...';
+
+    const pageOperations = organizerPages.map(p => ({
+      originalIndex: p.originalIndex,
+      rotateOffset: p.rotateOffset
+    }));
+
+    const originalDir = customSaveDir || currentOrganizerTask.path.replace(/[/\\][^/\\]+$/, '');
+    const baseName = currentOrganizerTask.name.replace(/\.pdf$/i, '');
+    const outputPath = `${originalDir}\\${baseName}_reorganized_${Date.now().toString().slice(-4)}.pdf`;
+
+    try {
+      if (window.electronAPI?.reorganizePdf) {
+        const res = await window.electronAPI.reorganizePdf({
+          inputPath: currentOrganizerTask.path,
+          outputPath,
+          pageOperations
+        });
+
+        if (res.success) {
+          closeOrganizer();
+          setMascotState('success', `「PDFのページを完璧に再構成したぜ！${organizerPages.length} ページを出力した！」\n（页面可视化重排完毕！已成功输出 ${organizerPages.length} 页全新 PDF！）`);
+          tasks.push({
+            id: `task-${Date.now()}`,
+            name: outputPath.replace(/.*[/\\]/, ''),
+            path: outputPath,
+            size: res.size || 0,
+            ext: 'pdf',
+            availableTargets: ['docx', 'clean-md', 'xlsx', 'compress', 'png'],
+            target: 'clean-md',
+            status: 'success',
+            outputPath: outputPath,
+            errorMsg: null,
+            errorStack: null
+          });
+          renderTasks();
+          return;
+        }
+      }
+      alert('页面重排未成功执行');
+    } catch (err) {
+      alert(`重排失败: ${err.message}`);
+    } finally {
+      applyOrganizerBtn.disabled = false;
+      applyOrganizerBtn.textContent = '⚡ 应用页面重组并保存';
+    }
+  });
+
+  // ==========================================================================
+  // 疯狂钻石「修复战报」系统 (Crazy Diamond Battle Report)
+  // ==========================================================================
+  const repairReportModal = document.getElementById('repairReportModal');
+  const reportCountVal = document.getElementById('reportCountVal');
+  const reportSavedVal = document.getElementById('reportSavedVal');
+  const reportTimeVal = document.getElementById('reportTimeVal');
+  const openReportFolderBtn = document.getElementById('openReportFolderBtn');
+  const confirmReportBtn = document.getElementById('confirmReportBtn');
+  const closeReportBtn = document.getElementById('closeReportBtn');
+
+  let lastBatchOutputDir = null;
+
+  function showRepairReport(count, savedBytes, durationSec, sampleOutputPath) {
+    if (reportCountVal) reportCountVal.textContent = `${count} 个`;
+    if (reportSavedVal) {
+      if (savedBytes > 0) {
+        reportSavedVal.textContent = formatSize(savedBytes);
+      } else {
+        reportSavedVal.textContent = '超清保真';
+      }
+    }
+    if (reportTimeVal) reportTimeVal.textContent = `${durationSec} 秒`;
+
+    lastBatchOutputDir = sampleOutputPath ? sampleOutputPath.replace(/[/\\][^/\\]+$/, '') : customSaveDir;
+    repairReportModal.classList.add('open');
+  }
+
+  const closeReport = () => repairReportModal.classList.remove('open');
+  closeReportBtn?.addEventListener('click', closeReport);
+  confirmReportBtn?.addEventListener('click', closeReport);
+
+  openReportFolderBtn?.addEventListener('click', async () => {
+    if (lastBatchOutputDir && window.electronAPI?.openPath) {
+      await window.electronAPI.openPath(lastBatchOutputDir);
+    }
+  });
 
   // 打开成功预览弹窗
   function openPreviewModal(task) {
@@ -782,6 +1036,9 @@ document.addEventListener('DOMContentLoaded', () => {
   startConvertBtn.addEventListener('click', async () => {
     if (tasks.length === 0) return;
 
+    const startTime = Date.now();
+    const totalOriginalBytes = tasks.reduce((sum, t) => sum + (t.size || 0), 0);
+
     setMascotState('converting');
     startConvertBtn.disabled = true;
     footerStatusText.textContent = 'ドララララ！疯狂钻石正在高速原子重组中...';
@@ -790,6 +1047,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let successCount = 0;
     let failCount = 0;
+    let totalOutputBytes = 0;
+    let sampleOutputPath = null;
 
     for (let i = 0; i < tasks.length; i++) {
       const task = tasks[i];
@@ -815,6 +1074,8 @@ document.addEventListener('DOMContentLoaded', () => {
           if (res.success) {
             task.status = 'success';
             task.outputPath = res.outputPath;
+            sampleOutputPath = res.outputPath;
+            if (res.size) totalOutputBytes += res.size;
             successCount++;
           } else {
             task.status = 'error';
@@ -826,6 +1087,7 @@ document.addEventListener('DOMContentLoaded', () => {
           await new Promise(r => setTimeout(r, 400));
           task.status = 'success';
           task.outputPath = task.path.replace(/\.[^/.]+$/, `.${task.target}`);
+          sampleOutputPath = task.outputPath;
           successCount++;
         }
       } catch (err) {
@@ -841,15 +1103,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     startConvertBtn.disabled = false;
+    const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
+    const savedBytes = Math.max(0, totalOriginalBytes - totalOutputBytes);
 
     if (failCount === 0) {
       updateProgress(100, '✨ 这可真是太 Great 了！原子重构全部完成！');
       setMascotState('success');
       footerStatusText.textContent = `全部完成 (${successCount}/${tasks.length})`;
+      showRepairReport(successCount, savedBytes, durationSec, sampleOutputPath);
     } else {
       updateProgress(100, `💥 重组完成 (成功: ${successCount}, 失败: ${failCount})`);
       setMascotState('error');
       footerStatusText.textContent = `处理完毕 (成功: ${successCount}, 失败: ${failCount})`;
+      if (successCount > 0) {
+        showRepairReport(successCount, savedBytes, durationSec, sampleOutputPath);
+      }
     }
   });
 });

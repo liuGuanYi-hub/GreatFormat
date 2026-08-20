@@ -162,6 +162,30 @@ function registerIpcHandlers() {
       return { success: false, error: err.message };
     }
   });
+
+  // 获取 PDF 页面缩略图
+  ipcMain.handle('greatformat:pdf-thumbnails', async (event, filePath) => {
+    try {
+      const PdfEngine = require('./src/core/pdf-engine');
+      const pages = await PdfEngine.renderPdfThumbnails(filePath);
+      return { success: true, pages };
+    } catch (e) {
+      console.error('[Main] pdf-thumbnails error:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  // 应用 PDF 页面重排与旋转
+  ipcMain.handle('greatformat:pdf-reorganize', async (event, { inputPath, outputPath, pageOperations }) => {
+    try {
+      const PdfEngine = require('./src/core/pdf-engine');
+      const result = await PdfEngine.reorganizePdf(inputPath, outputPath, pageOperations);
+      return result;
+    } catch (e) {
+      console.error('[Main] pdf-reorganize error:', e);
+      return { success: false, error: e.message };
+    }
+  });
 }
 
 app.whenReady().then(() => {

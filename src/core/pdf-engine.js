@@ -577,6 +577,133 @@ doc.save(out_pdf, encryption=fitz.PDF_ENCRYPT_NONE)
 
     throw new Error('PDF 解密未生成输出文件');
   }
+
+  /**
+   * 获取 PDF 每一页的高清预览缩略图 (用于可视化页面管理)
+   * @param {string} inputPath 
+   * @returns {Promise<Array<{ pageIndex: number, width: number, height: number, thumbnail: string }>>}
+   */
+  static async renderPdfThumbnails(inputPath) {
+    if (!fs.existsSync(inputPath)) {
+      throw new Error(`PDF 文件不存在: ${inputPath}`);
+    }
+
+    const resolvedInput = path.resolve(inputPath);
+    try {
+      const pyScript = `
+import sys
+import json
+import base64
+import fitz
+
+pdf_path = sys.argv[1]
+doc = fitz.open(pdf_path)
+pages_data = []
+
+# 缩放矩阵 (缩略图宽度约 300px，既清晰又加载极速)
+zoom = 0.5
+mat = fitz.Matrix(zoom, zoom)
+
+for i in range(len(doc)):
+    page = doc[i]
+    pix = page.get_pixmap(matrix=mat, alpha=False)
+    img_bytes = pix.tobytes("png")
+    b64_str = "data:image/png;base64," + base64.b64encode(img_bytes).decode('utf-8')
+    pages_data.append({
+        "pageIndex": i,
+        "pageNumber": i + 1,
+        "width": page.rect.width,
+        "height": page.rect.height,
+        "rotation": page.rotation,
+        "thumbnail": b64_str
+    })
+
+print(json.dumps(pages_data))
+`;
+      const tempPy = path.join(path.dirname(resolvedInput), `thumb_${Date.now()}.py`);
+      fs.writeFileSync(tempPy, pyScript, 'utf8');
+
+      const { stdout } = await execAsync(`python "${tempPy}" "${resolvedInput}"`, { maxBuffer: 1024 * 1024 * 30 });
+      if (fs.existsSync(tempPy)) fs.unlinkSync(tempPy);
+
+      return JSON.parse(stdout);
+    } catch (err) {
+      throw new Error(`生成 PDF 缩略图失败: ${err.message}`);
+    }
+  }
+
+  /**
+   * 根据可视化重排配置生成新 PDF (支持页码顺序重排、单页 90°/180°/270° 旋转与删页)
+   * @param {string} inputPath 
+   * @param {string} outputPath 
+   * @param {Array<{ originalIndex: number, rotateOffset: number }>} pageOperations 
+   */
+  static async reorganizePdf(inputPath, outputPath, pageOperations = []) {
+    if (!fs.existsSync(inputPath)) {
+      throw new Error(`PDF 文件不存在: ${inputPath}`);
+    }
+    if (!pageOperations || pageOperations.length === 0) {
+      throw new Error('未指定重排页面操作');
+    }
+
+    ensureDirSync(path.dirname(outputPath));
+    const resolvedInput = path.resolve(inputPath);
+    const resolvedOutput = path.resolve(outputPath);
+
+    try {
+      const pyScript = `
+import sys
+import json
+import fitz
+
+pdf_path = sys.argv[1]
+out_pdf = sys.argv[2]
+ops_file = sys.argv[3]
+
+with open(ops_file, 'r', encoding='utf-8') as f:
+    ops = json.load(f)
+
+src_doc = fitz.open(pdf_path)
+dst_doc = fitz.open()
+
+for item in ops:
+    orig_idx = int(item['originalIndex'])
+    rotate_offset = int(item.get('rotateOffset', 0))
+    if 0 <= orig_idx < len(src_doc):
+        dst_doc.insert_pdf(src_doc, from_page=orig_idx, to_page=orig_idx)
+        new_page = dst_doc[-1]
+        if rotate_offset != 0:
+            new_page.set_rotation((new_page.rotation + rotate_offset) % 360)
+
+dst_doc.save(out_pdf, garbage=4, deflate=True, clean=True)
+`;
+      const tempPy = path.join(path.dirname(resolvedOutput), `reorganize_${Date.now()}.py`);
+      const tempJson = path.join(path.dirname(resolvedOutput), `ops_${Date.now()}.json`);
+      fs.writeFileSync(tempPy, pyScript, 'utf8');
+      fs.writeFileSync(tempJson, JSON.stringify(pageOperations), 'utf8');
+
+      try {
+        await execAsync(`python "${tempPy}" "${resolvedInput}" "${resolvedOutput}" "${tempJson}"`);
+      } finally {
+        if (fs.existsSync(tempPy)) fs.unlinkSync(tempPy);
+        if (fs.existsSync(tempJson)) fs.unlinkSync(tempJson);
+      }
+
+      if (fs.existsSync(resolvedOutput)) {
+        return {
+          success: true,
+          engine: 'PyMuPDF Page Organizer',
+          outputPath: resolvedOutput,
+          size: fs.statSync(resolvedOutput).size,
+          pages: pageOperations.length
+        };
+      }
+    } catch (err) {
+      throw new Error(`PDF 页面重排失败: ${err.message}`);
+    }
+
+    throw new Error('PDF 页面重排未生成输出文件');
+  }
 }
 
 module.exports = PdfEngine;

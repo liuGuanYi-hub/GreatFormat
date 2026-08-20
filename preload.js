@@ -16,5 +16,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getCapabilities: () => ipcRenderer.invoke('greatformat:capabilities'),
   openPath: (filePath) => ipcRenderer.invoke('greatformat:open-path', filePath),
   showItemInFolder: (filePath) => ipcRenderer.invoke('greatformat:show-in-folder', filePath),
-  toggleContextMenu: (enable) => ipcRenderer.invoke('greatformat:toggle-context-menu', enable)
+  toggleContextMenu: (enable) => ipcRenderer.invoke('greatformat:toggle-context-menu', enable),
+  getPdfThumbnails: (filePath) => ipcRenderer.invoke('greatformat:pdf-thumbnails', filePath),
+  reorganizePdf: (params) => ipcRenderer.invoke('greatformat:pdf-reorganize', params)
 });

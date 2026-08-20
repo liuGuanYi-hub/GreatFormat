@@ -1365,6 +1365,296 @@ body {
 }
 
 /* ==========================================================================
+   PDF 页面可视化管理工作台 (PDF Organizer)
+   ========================================================================== */
+.modal-card-fullscreen {
+  max-width: 900px;
+  width: 94%;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.organizer-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.organizer-page-badge {
+  background: rgba(0, 113, 227, 0.12);
+  color: var(--apple-blue);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.organizer-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.organizer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  background: var(--surface-secondary);
+}
+
+.organizer-tip {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 8px 12px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-subtle);
+}
+
+.pdf-page-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.pdf-page-card {
+  background: #ffffff;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: grab;
+  position: relative;
+}
+
+.pdf-page-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  border-color: var(--apple-blue);
+}
+
+.pdf-page-card.dragging {
+  opacity: 0.4;
+  transform: scale(0.95);
+}
+
+.pdf-page-card.drag-over-target {
+  border: 2px dashed var(--apple-blue);
+  background: rgba(0, 113, 227, 0.05);
+}
+
+.page-preview-box {
+  width: 100%;
+  height: 200px;
+  background: #f0f0f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 8px;
+}
+
+.page-thumbnail-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: transform 0.25s ease;
+}
+
+.page-card-footer {
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border-subtle);
+  background: #fafafa;
+}
+
+.page-number-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.page-action-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.page-icon-btn {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.page-icon-btn:hover {
+  background: var(--surface-primary);
+  border-color: var(--apple-blue);
+  color: var(--apple-blue);
+}
+
+.page-icon-btn.delete:hover {
+  border-color: #ff3b30;
+  color: #ff3b30;
+  background: rgba(255, 59, 48, 0.1);
+}
+
+.organizer-footer {
+  padding: 12px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid var(--border-subtle);
+  background: #ffffff;
+}
+
+/* ==========================================================================
+   疯狂钻石「修复战报」总结卡片 (Crazy Diamond Report)
+   ========================================================================== */
+.modal-card-report {
+  max-width: 520px;
+  width: 90%;
+  background: linear-gradient(160deg, #ffffff 60%, rgba(255, 240, 248, 0.9) 100%);
+  border: 1px solid rgba(175, 82, 222, 0.3);
+  box-shadow: 0 16px 40px rgba(175, 82, 222, 0.25);
+}
+
+.report-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px 10px;
+  border-bottom: 1px solid rgba(175, 82, 222, 0.15);
+}
+
+.report-avatar-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #af52de;
+  box-shadow: 0 0 12px rgba(175, 82, 222, 0.4);
+}
+
+.report-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.report-title-group {
+  flex: 1;
+}
+
+.report-sub {
+  font-size: 10px;
+  font-weight: 800;
+  color: #af52de;
+  letter-spacing: 0.5px;
+}
+
+.report-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.report-body {
+  padding: 18px 20px;
+}
+
+.report-quote {
+  background: rgba(175, 82, 222, 0.08);
+  border-left: 3px solid #af52de;
+  padding: 10px 14px;
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.quote-jp {
+  font-size: 12px;
+  font-weight: 700;
+  color: #af52de;
+}
+
+.quote-cn {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.report-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+.stat-box {
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px 10px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.stat-val {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+
+.stat-val.accent-purple { color: #af52de; }
+.stat-val.accent-green { color: #34c759; }
+.stat-val.accent-blue { color: #0071e3; }
+
+.report-footer {
+  padding: 14px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.page-manage-btn {
+  background: rgba(175, 82, 222, 0.1);
+  color: #af52de;
+  border: 1px solid rgba(175, 82, 222, 0.3);
+  border-radius: var(--radius-full);
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-right: 4px;
+}
+
+.page-manage-btn:hover {
+  background: #af52de;
+  color: #ffffff;
+}
+
+/* ==========================================================================
    动画 (Animations)
    ========================================================================== */
 @keyframes fadeIn {

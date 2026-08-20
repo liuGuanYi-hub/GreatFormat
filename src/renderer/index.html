@@ -273,6 +273,78 @@
         </div>
       </div>
     </div>
+
+    <!-- PDF 页面可视化管理工作台 (PDF Page Organizer Modal) -->
+    <div class="modal-backdrop" id="pdfOrganizerModal">
+      <div class="modal-card modal-card-fullscreen">
+        <div class="modal-header">
+          <div class="organizer-header-left">
+            <h3 class="modal-title" id="organizerDocTitle">📄 PDF 页面可视化管理</h3>
+            <span class="organizer-page-badge" id="organizerPageCount">0 页</span>
+          </div>
+          <div class="organizer-header-actions">
+            <button class="btn btn-secondary btn-sm" id="organizerRotateAllBtn">🔄 全体顺时针 90°</button>
+            <button class="btn btn-secondary btn-sm" id="organizerResetBtn">↺ 还原初始</button>
+            <button class="modal-close-btn" id="closeOrganizerBtn" aria-label="关闭">&times;</button>
+          </div>
+        </div>
+        <div class="modal-body organizer-body">
+          <p class="organizer-tip">💡 提示：按住页面卡片可自由拖拽调换页码顺序；点击卡片右上角按钮可单页旋转或删除无用页。</p>
+          <div class="pdf-page-grid" id="pdfPageGrid">
+            <!-- 动态渲染页面缩略图卡片 -->
+          </div>
+        </div>
+        <div class="modal-footer organizer-footer">
+          <button class="btn btn-secondary" id="cancelOrganizerBtn">取消</button>
+          <button class="btn btn-primary" id="applyOrganizerBtn">
+            <span>⚡ 应用页面重组并保存</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 疯狂钻石「修复战报」总结卡片 (Crazy Diamond Report Modal) -->
+    <div class="modal-backdrop" id="repairReportModal">
+      <div class="modal-card modal-card-report">
+        <div class="report-header">
+          <div class="report-avatar-box">
+            <img src="../assets/josuke_avatar.png" alt="东方仗助" class="report-avatar-img">
+          </div>
+          <div class="report-title-group">
+            <span class="report-sub">CRAZY DIAMOND REPAIR REPORT</span>
+            <h3 class="report-title">疯狂钻石 · 原子修复战报</h3>
+          </div>
+          <button class="modal-close-btn" id="closeReportBtn" aria-label="关闭">&times;</button>
+        </div>
+
+        <div class="modal-body report-body">
+          <div class="report-quote">
+            <span class="quote-jp">「グレートですよ、こいつはァ！すべてのファイルが完璧に直ったぜ！」</span>
+            <span class="quote-cn">（这可真是太 Great 了！所有文件已被疯狂钻石完美修复重构！）</span>
+          </div>
+
+          <div class="report-stats-grid">
+            <div class="stat-box">
+              <span class="stat-label">✨ 成功重组文件</span>
+              <span class="stat-val accent-purple" id="reportCountVal">0 个</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">💾 为磁盘挽救空间</span>
+              <span class="stat-val accent-green" id="reportSavedVal">0.0 MB</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">⚡ 替身执行耗时</span>
+              <span class="stat-val accent-blue" id="reportTimeVal">0.0 秒</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer report-footer">
+          <button class="btn btn-secondary" id="openReportFolderBtn">📂 打开存储文件夹</button>
+          <button class="btn btn-primary" id="confirmReportBtn">太 Great 了！继续重组</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>
