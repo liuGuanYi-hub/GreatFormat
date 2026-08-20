@@ -58,14 +58,14 @@ document.addEventListener('DOMContentLoaded', () => {
     arw: ['jpg', 'png', 'webp', 'tiff'],
     dng: ['jpg', 'png', 'webp', 'tiff'],
 
-    // PDF 全能工具箱
-    pdf: ['docx', 'xlsx', 'png', 'jpg', 'webp', 'txt', 'html', 'split'],
+    // PDF 全能工具箱 (含 AI 结构化提取与安全压缩)
+    pdf: ['docx', 'clean-md', 'xlsx', 'compress', 'watermark', 'encrypt', 'decrypt', 'png', 'jpg', 'webp', 'txt', 'html', 'split'],
 
     // 文档与演示
-    docx: ['pdf', 'html', 'txt', 'md', 'epub'],
-    doc: ['pdf', 'docx', 'html', 'txt', 'md'],
-    rtf: ['pdf', 'docx', 'html', 'txt', 'md'],
-    odt: ['pdf', 'docx', 'html', 'txt', 'md'],
+    docx: ['pdf', 'clean-md', 'html', 'txt', 'epub'],
+    doc: ['pdf', 'docx', 'clean-md', 'html', 'txt'],
+    rtf: ['pdf', 'docx', 'clean-md', 'html', 'txt'],
+    odt: ['pdf', 'docx', 'clean-md', 'html', 'txt'],
     pptx: ['pdf', 'png', 'jpg'],
     ppt: ['pdf', 'png', 'jpg'],
 
@@ -412,8 +412,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const item = document.createElement('div');
       item.className = 'task-item';
 
+      const getTargetLabel = (t) => {
+        switch (t) {
+          case 'clean-md': return '🤖 提取 Clean Markdown (AI/RAG专用)';
+          case 'compress': return '🗜️ 智能极限压缩 (.PDF)';
+          case 'watermark': return '🛡️ 注入防泄密水印 (.PDF)';
+          case 'encrypt': return '🔒 AES-256 密码加密 (.PDF)';
+          case 'decrypt': return '🔓 移除密码保护 (.PDF)';
+          case 'docx': return '📝 逆向重构 Word (.DOCX)';
+          case 'xlsx': return '📊 提取表格为 Excel (.XLSX)';
+          case 'split': return '✂️ 逐页拆分 PDF (.PDF)';
+          default: return `转为 .${t.toUpperCase()}`;
+        }
+      };
+
       const selectOptions = task.availableTargets
-        .map(t => `<option value="${t}" ${t === task.target ? 'selected' : ''}>转为 .${t.toUpperCase()}</option>`)
+        .map(t => `<option value="${t}" ${t === task.target ? 'selected' : ''}>${getTargetLabel(t)}</option>`)
         .join('');
 
       let statusBadge = `<span class="task-status status-ready">待就绪</span>`;
