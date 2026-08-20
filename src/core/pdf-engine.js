@@ -33,34 +33,21 @@ pdf_path = sys.argv[1]
 docx_path = sys.argv[2]
 
 cv = Converter(pdf_path)
+# 执行高保真逆向排版重构
 cv.convert(docx_path, start=0, end=None)
 cv.close()
 
-# 规整清理意外产生的空段落分节符与超大下边距，保证完美紧凑排版
-try:
-    import docx
-    from docx.shared import Pt
-    doc = docx.Document(docx_path)
-    for p in doc.paragraphs:
-        if not p.text.strip():
-            pPr = p._p.get_or_add_pPr()
-            for child in list(pPr):
-                if child.tag.endswith('sectPr'):
-                    pPr.remove(child)
-    for s in doc.sections:
-        if s.bottom_margin.pt > 45:
-            s.bottom_margin = Pt(25.5)
-        if s.top_margin.pt > 45:
-            s.top_margin = Pt(29.75)
-    doc.save(docx_path)
-except Exception as e:
-    pass
+if not os.path.exists(docx_path) or os.path.getsize(docx_path) == 0:
+    sys.exit(1)
 `;
       const tempPy = path.join(path.dirname(resolvedOutput), `convert_pdf_${Date.now()}.py`);
       fs.writeFileSync(tempPy, pyScript, 'utf8');
 
-      await execAsync(`python "${tempPy}" "${resolvedInput}" "${resolvedOutput}"`);
-      if (fs.existsSync(tempPy)) fs.unlinkSync(tempPy);
+      try {
+        await execAsync(`python "${tempPy}" "${resolvedInput}" "${resolvedOutput}"`);
+      } finally {
+        if (fs.existsSync(tempPy)) fs.unlinkSync(tempPy);
+      }
 
       if (fs.existsSync(resolvedOutput)) {
         return {
@@ -71,7 +58,7 @@ except Exception as e:
         };
       }
     } catch (err) {
-      console.warn('[PdfEngine] pdf2docx 转换未完成，尝试 Windows 原生 COM 方案:', err.message);
+      console.warn('[PdfEngine] pdf2docx 转换未完成:', err.message);
     }
 
     // 2. 备用尝试 Windows 原生 Word / WPS PDF Reflow
