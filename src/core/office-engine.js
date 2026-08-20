@@ -33,9 +33,10 @@ class OfficeEngine {
   /**
    * Word (.docx / .doc) 转 PDF
    * 多阶梯保真转换策略：
-   * 1. 优先使用 Windows 本地 COM 自动化 (MS Word / WPS Office)，100% 原始矢量排版完美保真！
-   * 2. 若用户电脑未安装 Office/WPS，自动使用内置 Electron 浏览器打印引擎转为标准 A4 PDF（零安装开箱即用）。
-   * 3. 备用尝试 LibreOffice Headless。
+   * 1. 优先使用 Python win32com 原生自动化 (MS Word / WPS Office)，100% 原始矢量排版完美保真！
+   * 2. 备选使用 Windows PowerShell / VBS COM 自动化。
+   * 3. 备选使用 LibreOffice Headless。
+   * 4. 兜底使用内置 Chromium 打印渲染。
    * @param {string} inputPath 
    * @param {string} outputPath 
    */
@@ -48,84 +49,134 @@ class OfficeEngine {
     const resolvedInput = path.resolve(inputPath);
     const resolvedOutput = path.resolve(outputPath);
 
-    // 1. 优先尝试 Windows 原生 COM 自动化 (MS Word / WPS Office)
+    // 1. 优先使用 Python win32com 自动化 (支持含空格/中文路径，最稳健精准)
     if (process.platform === 'win32') {
       try {
-        const vbsContent = `
-On Error Resume Next
-Dim docxPath, outPdf
-docxPath = "${resolvedInput.replace(/\\/g, '\\\\')}"
-outPdf = "${resolvedOutput.replace(/\\/g, '\\\\')}"
+        const pyScript = `
+import sys
+import os
 
-' 1. 尝试 Microsoft Word
-Dim word, doc
-Set word = CreateObject("Word.Application")
-If Err.Number = 0 And Not word Is Nothing Then
+docx_path = sys.argv[1]
+out_pdf = sys.argv[2]
+
+converted = False
+
+# 1. 尝试 Microsoft Word
+try:
+    import win32com.client
+    import pythoncom
+    pythoncom.CoInitialize()
+    word = win32com.client.DispatchEx('Word.Application')
     word.Visible = False
-    word.DisplayAlerts = False
-    Set doc = word.Documents.Open(docxPath, False, True)
-    If Err.Number = 0 And Not doc Is Nothing Then
-        doc.ExportAsFixedFormat outPdf, 17
-        doc.Close False
-        word.Quit False
-        If Err.Number = 0 Then
-            WScript.Quit 0
-        End If
-    End If
-    word.Quit False
-End If
+    word.DisplayAlerts = 0
+    doc = word.Documents.Open(docx_path, False, True)
+    # 17 = wdExportFormatPDF
+    doc.ExportAsFixedFormat(out_pdf, 17)
+    doc.Close(False)
+    word.Quit()
+    converted = True
+except Exception as e:
+    pass
 
-Err.Clear
+# 2. 尝试 WPS 文字
+if not converted or not os.path.exists(out_pdf):
+    try:
+        import win32com.client
+        import pythoncom
+        pythoncom.CoInitialize()
+        wps = win32com.client.DispatchEx('KWPS.Application')
+        wps.Visible = False
+        doc = wps.Documents.Open(docx_path, False, True)
+        doc.ExportAsFixedFormat(out_pdf, 17)
+        doc.Close(False)
+        wps.Quit()
+        converted = True
+    except Exception as e:
+        try:
+            wps = win32com.client.DispatchEx('WPS.Application')
+            wps.Visible = False
+            doc = wps.Documents.Open(docx_path, False, True)
+            doc.ExportAsFixedFormat(out_pdf, 17)
+            doc.Close(False)
+            wps.Quit()
+            converted = True
+        except Exception:
+            pass
 
-' 2. 尝试 WPS 文字 (KWPS / WPS)
-Dim wps
-Set wps = CreateObject("KWPS.Application")
-If Err.Number <> 0 Or wps Is Nothing Then
-    Err.Clear
-    Set wps = CreateObject("WPS.Application")
-End If
-
-If Err.Number = 0 And Not wps Is Nothing Then
-    wps.Visible = False
-    wps.DisplayAlerts = False
-    Set doc = wps.Documents.Open(docxPath, False, True)
-    If Err.Number = 0 And Not doc Is Nothing Then
-        doc.ExportAsFixedFormat outPdf, 17
-        doc.Close False
-        wps.Quit False
-        If Err.Number = 0 Then
-            WScript.Quit 0
-        End If
-    End If
-    wps.Quit False
-End If
-
-WScript.Quit 1
+if not os.path.exists(out_pdf) or os.path.getsize(out_pdf) == 0:
+    sys.exit(1)
 `;
-        const tempVbs = path.join(path.dirname(resolvedOutput), `convert_com_${Date.now()}.vbs`);
-        // 使用带有 UTF-16LE BOM 写入，确保 cscript 正确解析中文字符路径
-        fs.writeFileSync(tempVbs, Buffer.from('\uFEFF' + vbsContent, 'utf16le'));
+        const tempPy = path.join(path.dirname(resolvedOutput), `word_com_${Date.now()}.py`);
+        fs.writeFileSync(tempPy, pyScript, 'utf8');
 
         try {
-          await execAsync(`cscript //Nologo "${tempVbs}"`);
+          await execAsync(`python "${tempPy}" "${resolvedInput}" "${resolvedOutput}"`);
         } finally {
-          if (fs.existsSync(tempVbs)) fs.unlinkSync(tempVbs);
+          if (fs.existsSync(tempPy)) fs.unlinkSync(tempPy);
         }
 
-        if (fs.existsSync(resolvedOutput)) {
+        if (fs.existsSync(resolvedOutput) && fs.statSync(resolvedOutput).size > 0) {
           return {
             success: true,
-            engine: 'Windows Native COM (Word/WPS)',
+            engine: 'Windows Native Word/WPS (Python COM 100% 保真)',
             outputPath: resolvedOutput,
             size: fs.statSync(resolvedOutput).size
           };
         }
       } catch (err) {
-        console.log('[OfficeEngine] COM 自动化转换未完成，切入内置引擎:', err.message);
+        console.log('[OfficeEngine] Python COM 自动化未完成，尝试 PowerShell COM:', err.message);
+      }
+
+      // 2. 备用尝试 PowerShell 原生 COM 自动化
+      try {
+        const psScript = `
+$ErrorActionPreference = 'Stop'
+$docx = [System.IO.Path]::GetFullPath("${resolvedInput.replace(/"/g, '`"')}")
+$pdf = [System.IO.Path]::GetFullPath("${resolvedOutput.replace(/"/g, '`"')}")
+
+try {
+    $word = New-Object -ComObject Word.Application
+    $word.Visible = $false
+    $doc = $word.Documents.Open($docx, $false, $true)
+    $doc.ExportAsFixedFormat($pdf, 17)
+    $doc.Close($false)
+    $word.Quit()
+} catch {
+    try {
+        $wps = New-Object -ComObject 'KWPS.Application'
+        $wps.Visible = $false
+        $doc = $wps.Documents.Open($docx, $false, $true)
+        $doc.ExportAsFixedFormat($pdf, 17)
+        $doc.Close($false)
+        $wps.Quit()
+    } catch {
+        exit 1
+    }
+}
+`;
+        const tempPs = path.join(path.dirname(resolvedOutput), `word_ps_${Date.now()}.ps1`);
+        fs.writeFileSync(tempPs, psScript, 'utf8');
+
+        try {
+          await execAsync(`powershell -ExecutionPolicy Bypass -File "${tempPs}"`);
+        } finally {
+          if (fs.existsSync(tempPs)) fs.unlinkSync(tempPs);
+        }
+
+        if (fs.existsSync(resolvedOutput) && fs.statSync(resolvedOutput).size > 0) {
+          return {
+            success: true,
+            engine: 'Windows Native Word/WPS (PowerShell COM)',
+            outputPath: resolvedOutput,
+            size: fs.statSync(resolvedOutput).size
+          };
+        }
+      } catch (err) {
+        console.log('[OfficeEngine] PowerShell COM 自动化未完成，尝试备用引擎:', err.message);
       }
     }
 
-    // 2. 内置零依赖转换：使用 Mammoth 结构解析 + Chromium 渲染输出 PDF
+    // 3. 内置零依赖转换：使用 Mammoth 结构解析 + Chromium 渲染输出 PDF
     if (this.chromiumPdfRenderer && mammoth) {
       try {
         const buffer = fs.readFileSync(resolvedInput);
