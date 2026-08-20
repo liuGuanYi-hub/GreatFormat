@@ -142,22 +142,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let activeVoiceAudio = null;
   let voiceFadeTimer = null;
-  const TARGET_VOICE_VOLUME = 0.60; // 舒适柔和音量，防止吓人一跳
+  const TARGET_VOICE_VOLUME = 0.80; // 饱满舒适音量
 
-  // 播放原声音频文件 (柔和渐入 Fade-In + 自然结尾渐出 Fade-Out)
-  function playAudioFile(fileName, fadeInMs = 380, targetMaxVol = TARGET_VOICE_VOLUME) {
+  // 播放原声音频文件 (快速平滑渐入，完整播放不截断)
+  function playAudioFile(fileName, fadeInMs = 120, targetMaxVol = TARGET_VOICE_VOLUME) {
     if (!audioEnabled) return null;
     try {
-      stopVoiceAudio(240);
+      stopVoiceAudio(150);
       const audio = new Audio(`../assets/audio/${fileName}`);
-      audio.volume = 0.0;
+      audio.volume = 0.2;
       activeVoiceAudio = audio;
 
       const playPromise = audio.play();
       if (playPromise) {
         playPromise.then(() => {
           const start = Date.now();
-          // 平滑渐入 (S-Curve / Sine Smooth Fade-In)
           const inTimer = setInterval(() => {
             if (activeVoiceAudio !== audio) {
               clearInterval(inTimer);
@@ -165,25 +164,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const elapsed = Date.now() - start;
             const progress = Math.min(1, elapsed / fadeInMs);
-            // 正弦平滑插值曲线
-            const curve = Math.sin(progress * (Math.PI / 2));
-            audio.volume = Math.min(1, Math.max(0, curve * targetMaxVol));
+            audio.volume = Math.min(1, Math.max(0.2, 0.2 + progress * (targetMaxVol - 0.2)));
             if (progress >= 1) clearInterval(inTimer);
           }, 16);
 
-          // 监听音频播放进度，在接近尾声时（剩余 420ms）自动平滑淡出
-          const checkNaturalEnd = () => {
-            if (activeVoiceAudio !== audio || audio.paused) {
-              audio.removeEventListener('timeupdate', checkNaturalEnd);
-              return;
-            }
-            if (audio.duration && (audio.duration - audio.currentTime <= 0.42)) {
-              audio.removeEventListener('timeupdate', checkNaturalEnd);
-              stopVoiceAudio(380);
-            }
+          audio.onended = () => {
+            if (activeVoiceAudio === audio) activeVoiceAudio = null;
           };
-          audio.addEventListener('timeupdate', checkNaturalEnd);
-
         }).catch(err => console.warn(`[Audio] Play ${fileName} failed:`, err.message));
       }
       return audio;
@@ -839,8 +826,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // 东方仗助立绘点击彩蛋台词库 (5套经典互动，全部绑定专属独立番剧原声)
   const CLICK_EASTER_EGGS = [
     {
-      badge: '守护杜王町',
-      text: '「杜王町はこのオレが守る！グレートに行こうぜ！」\n（由我来守护杜王町的和平！这就出发，太 Great 了！）',
+      badge: '自信名台词',
+      text: '「グレートだぜ…！この仗助サマに任せな！」\n（太 Great 了……！一切交给我仗助吧！）',
       audio: 'gureto_daze.mp3',
       sfx: 'グレート！'
     },
