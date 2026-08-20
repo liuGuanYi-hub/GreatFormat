@@ -95,19 +95,25 @@ class ImageEngine {
         throw new Error(`不支持的图片目标格式: ${targetExt}`);
     }
 
-    await pipeline.toFile(outputPath);
-    const origSize = fs.statSync(inputPath).size;
-    const newSize = fs.statSync(outputPath).size;
-    const ratio = Math.round((1 - newSize / Math.max(1, origSize)) * 100);
+    try {
+      await pipeline.toFile(outputPath);
+      const origSize = fs.statSync(inputPath).size;
+      const newSize = fs.statSync(outputPath).size;
+      const ratio = Math.round((1 - newSize / Math.max(1, origSize)) * 100);
 
-    return {
-      success: true,
-      engine: 'Sharp High-Efficiency Image Optimizer',
-      outputPath,
-      originalSize: origSize,
-      size: newSize,
-      savedPercent: `${Math.max(0, ratio)}%`
-    };
+      return {
+        success: true,
+        engine: 'Sharp High-Efficiency Image Optimizer',
+        outputPath,
+        originalSize: origSize,
+        size: newSize,
+        savedPercent: `${Math.max(0, ratio)}%`
+      };
+    } catch (sharpErr) {
+      // 若 Sharp 解码遇到特殊色彩位深 (如 32-bit BMP 或特殊 TIFF)，自动使用 Pillow/FFmpeg 兜底
+      const MediaEngine = require('./media-engine');
+      return await MediaEngine.convertSpecialImage(inputPath, outputPath);
+    }
   }
 
   /**

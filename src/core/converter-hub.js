@@ -137,9 +137,11 @@ class ConverterHub {
     else if (MediaEngine.VIDEO_FORMATS.includes(sourceExt)) {
       result = await MediaEngine.convertVideo(inputPath, outputPath, options);
     }
-    // 3. 图像类转换 (Image ➔ Image / Image ➔ PDF / RAW / Special)
+    // 3. 图像类转换 (Image ➔ Image / Image ➔ PDF / RAW / Special / GIF ➔ Video)
     else if (ImageEngine.SUPPORTED_INPUT_FORMATS.includes(sourceExt)) {
-      if (normalizedTarget === 'pdf') {
+      if (sourceExt === 'gif' && MediaEngine.VIDEO_FORMATS.includes(normalizedTarget)) {
+        result = await MediaEngine.convertVideo(inputPath, outputPath, options);
+      } else if (normalizedTarget === 'pdf') {
         result = await ImageEngine.imagesToPdf([inputPath], outputPath, options);
       } else {
         result = await ImageEngine.convertImage(inputPath, outputPath, options);
@@ -163,8 +165,8 @@ class ConverterHub {
         throw new Error(`暂不支持从 ${sourceExt} 转换至 ${normalizedTarget}`);
       }
     }
-    // 7. 纯文本 / Markdown ➔ Docx / PDF
-    else if (['md', 'markdown', 'txt'].includes(sourceExt)) {
+    // 7. 纯文本 / Markdown / HTML 互转 ➔ Docx / PDF / HTML / Markdown / TXT
+    else if (['md', 'markdown', 'txt', 'html', 'htm'].includes(sourceExt)) {
       if (normalizedTarget === 'docx') {
         result = await OfficeEngine.textToDocx(inputPath, outputPath);
       } else if (normalizedTarget === 'pdf') {
@@ -175,6 +177,21 @@ class ConverterHub {
         } finally {
           if (fs.existsSync(tempDocx)) fs.unlinkSync(tempDocx);
         }
+      } else if (['md', 'markdown', 'html', 'htm', 'txt'].includes(normalizedTarget)) {
+        // 轻量文本转换
+        const content = fs.readFileSync(inputPath, 'utf8');
+        if (normalizedTarget === 'html' || normalizedTarget === 'htm') {
+          const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Converted</title><style>body{font-family:sans-serif;line-height:1.6;max-width:800px;margin:2rem auto;padding:1rem;color:#111;}</style></head><body><pre style="white-space:pre-wrap;">${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre></body></html>`;
+          fs.writeFileSync(outputPath, htmlContent, 'utf8');
+        } else if (normalizedTarget === 'txt') {
+          const plainText = content.replace(/<[^>]+>/g, '').replace(/[#*`_~]/g, '');
+          fs.writeFileSync(outputPath, plainText, 'utf8');
+        } else {
+          // 转 Markdown
+          const mdText = content.replace(/<[^>]+>/g, '');
+          fs.writeFileSync(outputPath, mdText, 'utf8');
+        }
+        result = { success: true, engine: 'Text/Markdown Stream Parser', outputPath, size: fs.statSync(outputPath).size };
       } else {
         result = await DataEngine.convertDataOrSpreadsheet(inputPath, outputPath, options);
       }
