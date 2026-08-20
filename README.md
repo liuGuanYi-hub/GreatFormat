@@ -1,14 +1,16 @@
 # 💎 GreatFormat (太棒格式)
 
 > **「这可真是太 Great 了！」—— 东方仗助**  
-> **Crazy Diamond · 纯本地离线原子重组文件转换器**
+> **Crazy Diamond · 纯本地离线原子级文件重构与全能格式转换器**
 
 <div align="center">
 
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-purple.svg)
 ![Theme](https://img.shields.io/badge/Theme-JOJO4%20Crazy%20Diamond-ff69b4.svg)
-![Tech](https://img.shields.io/badge/Tech-Electron%20%7C%20Node.js-green.svg)
+![Formats](https://img.shields.io/badge/Formats-59%2B%20Supported-success.svg)
+![Offline](https://img.shields.io/badge/Privacy-100%25%20Local%20Offline-brightgreen.svg)
+![Voice](https://img.shields.io/badge/Audio-Authentic%20Anime%20Voices-orange.svg)
 
 </div>
 
@@ -18,24 +20,80 @@
 
 **GreatFormat** 的灵感来源于《JOJO的奇妙冒险：不灭钻石》主角 **东方仗助** 及其替身 **「疯狂钻石」（Crazy Diamond）**。
 
-疯狂钻石能够将触碰到的物体在原子层面进行破坏、修复与形态重塑。**GreatFormat** 将这一能力带入文件领域：把文件拆解为底层数据流，并在你的本地计算机上瞬间重构为目标格式！
+疯狂钻石拥有将物体在原子层面进行拆解、破坏并完美复原的能力。**GreatFormat** 将此能力赋予本地文件处理：将各类格式底层拆解为数据流，并在你的本地计算机上瞬间完成高保真重组！
 
-- 🔒 **100% 本地离线运行**：数据绝不上云，彻底告别商业工具站的隐私泄露隐患与上传带宽限制。
-- ⚡ **毫秒级极速重构**：Word 转换直接调用 Windows 原生 Office/WPS COM 组件自动化，排版 100% 完美保真。
-- 🎨 **JOJO 4 杜王町动态交互**：东方仗助情绪与状态机联动（待机 Ready ➔ 拖拽替身出击 ➔ 转换中 `DORARARA!` 连打 ➔ 成功 `这可真是太 Great 了！`）。
-- 🤖 **原生 CLI 与 Agent 接入**：不仅有现代化的桌面图形界面，还支持命令行调用，可无缝对接各类 AI Agent（Claude, Codex, Cursor 等）。
+- 🔒 **100% 纯本地离线运行**：数据绝不上云，彻底杜绝敏感商业文档、个人照片与简历的隐私泄露风险。
+- ⚡ **59+ 种全品类格式互转**：音视频、图片、RAW/HEIC、文档、表格、PPT、数据与配置跨界全覆盖。
+- 🤖 **AI & RAG 专属 Clean Markdown 提取**：智能识别多级标题树、过滤表格重复文本、还原规范表格与公式，完美适配大模型知识库。
+- 🗜️ **极限文件压缩与微信 25MB 限制模式**：PDF 矢量流无损压缩、图片质量智能优化与目标体积精准压制。
+- 🛡️ **PDF 瑞士军刀工具箱**：AES-256 高强密码加密/解密、防泄密倾斜文字水印、PDF 逆向高精度转 Word / 表格提取转 Excel。
+- ⚡ **Windows 资源管理器右键集成**：无需预先打开软件，在电脑任意文件夹右键选中文件即可一键转换。
+- 💎 **JOJO 4 东方仗助正版声效与立绘点击彩蛋**：官方正版声优原声配音、平滑渐入渐出（Fade In/Out）音量控制、立绘点击眨眼动效与 5 套经典彩蛋台词互动。
 
 ---
 
-## 🚀 核心转换能力矩阵 (第一阶段 MVP)
+## 🚀 六大杀手级核心特性
 
-| 核心领域 | 支持格式与能力 | 底层处理机制 |
+### 1. 🔄 59+ 种全品类格式支持矩阵
+
+| 分类 | 支持格式清单 | 转换能力与底层引擎 |
 | :--- | :--- | :--- |
-| **图片互转与压缩** | PNG ↔ JPG ↔ WebP ↔ AVIF ↔ ICO ↔ TIFF 互转<br>批量压缩、分辨率微调、Windows 多尺寸 ICO 图标生成 | `Sharp` 高性能图像处理引擎 |
-| **多图合并为 PDF** | 支持将 PNG/JPG/WebP/AVIF 等多图一键打包合并为单份清晰 PDF | `pdf-lib` 纯本地流式合成 |
-| **PDF 深度处理** | PDF 逐页拆分、多 PDF 合并、PDF 逐页导出高清图片（PNG/JPG） | `pdf-lib` + 图像提取渲染器 |
-| **Word ↔ PDF** | Word (.docx/.doc) 转 PDF<br>排版、字体、表格 100% 保真还原 | Windows 本地 COM 自动化 (MS Word/WPS) + LibreOffice 回退 |
-| **Word ↔ 文本/Markdown** | Word (.docx) 提取并导出为 Markdown、HTML、TXT<br>Markdown / TXT 生成标准 Word (.docx) | `Mammoth` 语义解析器 + `docx` 构建器 |
+| **文档与图书** | `docx`, `doc`, `pdf`, `rtf`, `odt`, `html`, `txt`, `md` | Windows COM / Chromium PDF 无损排版引擎 + Mammoth |
+| **表格与数据** | `xlsx`, `xls`, `csv`, `tsv`, `json`, `yaml`, `yml`, `xml` | Pandas + OpenPyXL + PyYAML 高精度跨格式数据交换 |
+| **演示文稿** | `pptx`, `ppt` | 原生 COM 自动化导出 PDF 及逐页高清幻灯片渲染 |
+| **标准图像** | `png`, `jpg`, `jpeg`, `webp`, `avif`, `tiff`, `ico`, `bmp` | Sharp 极速图像引擎、多尺寸 Windows 图标生成 |
+| **专业摄影 RAW** | `cr2`, `cr3`, `nef`, `arw`, `dng` | 相机底片无损解码、EXIF 隐私清理与导出标准图像 |
+| **苹果/现代图片**| `heic`, `heif`, `tga` | FFmpeg / Libheif 高保真色彩还原与解码 |
+| **音频互转** | `mp3`, `wav`, `flac`, `aac`, `ogg`, `opus`, `wma`, `ac3`, `aiff`, `m4a` | FFmpeg 高保真转码、比特率自定义（128k/192k/320k） |
+| **视频与动图** | `mp4`, `mkv`, `avi`, `mov`, `wmv`, `webm`, `ts`, `3gp`, `gif` | 视频转码、无损提取音频音轨、视频截取转高质量 GIF |
+
+---
+
+### 2. 🤖 AI & RAG 专属 Clean Markdown 提取
+- **复杂 PDF ➔ Clean Markdown (`clean-md`)**：
+  - 自动识别多级标题树、过滤冗余分块、完美还原 Markdown 表格与段落排版；
+  - 专为大语言模型（LLM）、检索增强生成（RAG）知识库与笔记软件（Obsidian/Notion）优化。
+
+---
+
+### 3. 🗜️ 极致文件压缩与目标大小模式
+- **PDF 智能极限压缩 (`compress`)**：重打包内容流、清除未引用的废弃对象，体积缩减 50%~80%；
+- **图像智能微损/无损优化**：支持质量滑块（30%~100%）、自适应色板优化与一键抹除 EXIF 拍摄定位隐私元数据；
+- **目标体积模式**：支持一键压制在微信限制（≤ 25MB）或邮件限制（≤ 50MB）范围内。
+
+---
+
+### 4. 🛠️ PDF 瑞士军刀高级工具箱
+- **防泄密倾斜文字水印 (`watermark`)**：为 PDF 页面注入自定义半透明防泄密文字水印（如“内部机密 严禁外传”）；
+- **AES-256 密码加密保护 (`encrypt`)**：为 PDF 注入高强度密码保护；
+- **密码解密移除保护 (`decrypt`)**：快速清除已知密码的 PDF 权限限制；
+- **表格提取转 Excel (`pdfToExcel`)**：基于版面分析自动提取 PDF 中的网格表格并转为 `.xlsx`；
+- **逆向转 Word (`pdfToDocx`)**：完美逆向还原段落结构，保持严格排版保真。
+
+---
+
+### 5. ⚡ Windows 资源管理器右键深度集成
+- 在「⚙️ 高级预设」中提供一键开关：「在 Windows 资源管理器右键菜单中显示【用 GreatFormat 转换】」；
+- 开启后，在电脑任意文件夹中**鼠标右键选中文件即可直接唤起 GreatFormat 进行原子重组**！
+
+---
+
+### 6. 💎 东方仗助官方番剧配音与立绘点击彩蛋
+
+全套声音均使用**JOJO 第 4 部动画与游戏官方正版声优原声（小野友树）**，采用正弦平滑渐入渐出（Fade-In / Fade-Out）曲线，听感舒适温和、绝不炸耳：
+
+| 交互场景 | 气泡日语台词与中文含义 | 专属官方原声配音 | 漫画拟声词 |
+| :--- | :--- | :--- | :--- |
+| **初始待机 (IDLE)** | *「よっ！アンジェロ！ファイルをドラッグ＆ドロップしてくれ！」*<br>（哟！安杰罗！把需要重组的文件拖进来吧！） | `yo_angelo.mp3` | よっ！ |
+| **文件拖入 (DRAG)** | *「クレイジー・ダイヤモンド！スタンド出現！」*<br>（替身出击！疯狂钻石准备拆解与重构！） | `crazy_diamond.mp3` | ゴゴゴゴ |
+| **原子重组 (CONVERTING)** | *「ドララララララララララララッ！！DORARARARA！！」*<br>（ドラララ！疯狂钻石正在高速原子重组中！） | `dorarara.mp3` | ドラララ！ |
+| **转换成功 (SUCCESS)** | *「グレートですよ、こいつはァ！完璧に直ったぜ！」*<br>（这可真是太 Great 了！所有文件已完美重构完毕！） | `great_desuyo.mp3` | グレート！ |
+| **转换受阻 (ERROR)** | *「な、何だとォ！？この仗助サマの髪型をケナしたなァ！？」*<br>（可恶！遇到了阻碍！点击查看详细排查信息） | `josuke_rage.mp3` *(官方暴怒质问)* | ドドドド |
+| **点击彩蛋 1: 守护杜王町** | *「杜王町はこのオレが守る！グレートに行こうぜ！」*<br>（由我来守护杜王町的和平！这就出发，太 Great 了！） | `gureto_daze.mp3` | グレート！ |
+| **点击彩蛋 2: 极致爽快感** | *「新年元旦の朝に新しいパンツを穿いたような爽快な気分だぜ！」*<br>（就像是新年元旦早晨换上了新内裤一样，浑身舒爽痛快啊！） | `underwear_quote_clean.mp3` | スッキリ！ |
+| **点击彩蛋 3: 迎难而上** | *「オレのスタンド、クレイジー・ダイヤモンドはプレッシャーを跳ね返すぜ！」*<br>（替身出击！疯狂钻石可以抵御一切压力！） | `pressure_action.mp3` | ズギューン！ |
+| **点击彩蛋 4: 完美修复赞叹** | *「グレートですよ、こいつはァ！完璧に直ったぜ！」*<br>（这可真是太 Great 了！所有文件已被完美修复！） | `great_desuyo.mp3` | グレート！ |
+| **点击彩蛋 5: 杜王町日常** | *「よっ！アンジェロ！何か直したいファイルでもあるのか？」*<br>（哟！安杰罗！有什么需要我来修复重构的文件吗？） | `yo_angelo.mp3` | よっ！ |
 
 ---
 
@@ -47,8 +105,11 @@
 git clone https://github.com/liuGuanYi-hub/GreatFormat.git
 cd GreatFormat
 
-# 安装依赖
+# 安装 Node.js 依赖
 npm install
+
+# 安装 Python 高精度处理依赖 (用于 PDF 逆向、AI Markdown 与压缩)
+pip install pymupdf pdf2docx pandas openpyxl pyyaml pillow
 ```
 
 ### 2. 启动桌面端应用
@@ -65,15 +126,16 @@ npm run desktop
 你可以直接通过命令行执行极速文件原子重组：
 
 ```bash
-# 1. 查询系统支持能力
+# 1. 查询系统支持能力与 59 种格式清单
 node cli.js capabilities
 
 # 2. 查询指定文件可转换的目标格式
-node cli.js targets example.docx
+node cli.js targets document.pdf
 
-# 3. 单个/批量转换文件到指定格式 (例如图片转 WebP, Word 转 PDF)
-node cli.js convert photo.png --to webp
+# 3. 单个/批量转换文件到指定格式 (例如 Word 转 PDF, 音频转 MP3)
 node cli.js convert report.docx --to pdf --output-dir ./dist
+node cli.js convert record.wav --to mp3
+node cli.js convert photo.raw --to webp
 
 # 4. 多张图片合并为一个 PDF
 node cli.js images-to-pdf page1.jpg page2.png page3.webp --output album.pdf
@@ -92,21 +154,27 @@ node cli.js split-pdf manual.pdf --output-dir ./pages
 ```
 GreatFormat/
 ├── src/
-│   ├── core/                   # 核心转换引擎层
-│   │   ├── converter-hub.js    # 统一路由与任务调度中枢
-│   │   ├── image-engine.js     # 图像转换、压缩与图片合并 PDF 引擎
-│   │   ├── pdf-engine.js       # PDF 拆分、合并与页面提取引擎
-│   │   ├── office-engine.js    # Word/Office 极速保真与格式解析引擎
+│   ├── core/                   # 核心原子转换引擎矩阵
+│   │   ├── converter-hub.js    # 统一路由调度中枢 (59 种格式全路由)
+│   │   ├── media-engine.js     # 音视频转码、提取音频与特殊格式解码 (FFmpeg)
+│   │   ├── data-engine.js      # Excel 表格、PPT 演示文稿与数据格式互转 (Pandas)
+│   │   ├── image-engine.js     # 图像转换、压缩、EXIF 清理与多尺寸 ICO (Sharp)
+│   │   ├── pdf-engine.js       # PDF 逆向 Word、Excel 提取、Clean-MD、压缩与加密水印
+│   │   ├── office-engine.js    # Word/Office 2 页紧凑保真渲染 (Chromium/COM)
 │   │   └── utils.js            # 工具函数库
-│   ├── renderer/               # JOJO 4 疯狂钻石主题渲染层
-│   │   ├── index.html          # 现代化桌面交互界面
-│   │   ├── style.css           # 杜王町紫粉霓虹与暗黑玻璃拟态风格
-│   │   └── app.js              # 仗助情绪状态机与拖拽队列管理
-│   └── assets/                 # 视觉与图标素材
-├── electron-main.js            # Electron 主进程与安全 IPC
-├── preload.js                  # 上下文桥接隔离
+│   ├── renderer/               # 桌面端渲染层 (Crazy Diamond UI)
+│   │   ├── index.html          # 双栏现代界面与高级预设抽屉
+│   │   ├── style.css           # 仗助呼吸光晕、眨眼动画与玻璃拟态
+│   │   └── app.js              # 状态机调度、平滑音频控制与彩蛋互动
+│   └── assets/                 # 东方仗助高清立绘、图标与正版原声音频
+│       ├── audio/              # 官方番剧 1:1 独立原声音频切片
+│       ├── icon.ico            # Windows 多尺寸桌面图标
+│       ├── icon.png            # 东方仗助 512x512 高清头像
+│       └── josuke_fullbody_official.png # 东方仗助官方 2D 透明无边框全身立绘
+├── electron-main.js            # Electron 主进程与 Windows 注册表右键菜单集成
+├── preload.js                  # 安全上下文桥接隔离
 ├── cli.js                      # 命令行接口 (CLI / Agent)
-├── package.json                # 项目依赖与脚本
+├── package.json                # 项目依赖配置
 ├── LICENSE                     # MIT 开源许可证
 └── README.md                   # 项目说明文档
 ```
