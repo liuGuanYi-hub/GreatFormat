@@ -191,7 +191,15 @@ GreatFormat/
 │       ├── audio/              # 官方番剧 1:1 独立原声音频切片
 │       ├── icon.ico            # Windows 多尺寸桌面图标
 │       ├── icon.png            # 东方仗助 512x512 高清头像
-│       └── josuke_fullbody_official.png # 东方仗助官方 2D 透明无边框全身立绘
+├── docs/                       # 核心技术文档与架构知识库
+│   └── knowledge-base/         # 深度技术实践与踩坑经验知识库 (6 篇专栏)
+│       ├── 01_windows_com_and_office_engine.md
+│       ├── 02_pdf_reverse_engineering_and_layout_recovery.md
+│       ├── 03_59_format_matrix_and_fallback_architecture.md
+│       ├── 04_stirling_pdf_page_organizer_and_pymupdf.md
+│       ├── 05_audio_engineering_and_voice_interaction.md
+│       ├── 06_electron_portable_build_and_packaging.md
+│       └── INDEX.md            # 知识库全景检索索引
 ├── electron-main.js            # Electron 主进程与 Windows 注册表右键菜单集成
 ├── preload.js                  # 安全上下文桥接隔离
 ├── cli.js                      # 命令行接口 (CLI / Agent)
@@ -199,6 +207,20 @@ GreatFormat/
 ├── LICENSE                     # MIT 开源许可证
 └── README.md                   # 项目说明文档
 ```
+
+---
+
+## 📚 核心工程知识库 (Knowledge Base)
+
+本项目将开发过程中的**核心架构设计、高保真排版算法、音视频转码避坑与桌面端构建经验**系统性沉淀为 6 篇深度专栏，欢迎查阅：
+
+- 📖 [**GreatFormat 核心技术知识库全景导航 (INDEX.md)**](docs/knowledge-base/INDEX.md)
+  1. [Windows COM 自动化与 Office/Word 完美保真转换指南](docs/knowledge-base/01_windows_com_and_office_engine.md)
+  2. [PDF 逆向重构 Word (.docx) 与版面保护避坑实录](docs/knowledge-base/02_pdf_reverse_engineering_and_layout_recovery.md)
+  3. [全品类 59+ 格式转换矩阵与多层回退引擎架构](docs/knowledge-base/03_59_format_matrix_and_fallback_architecture.md)
+  4. [类似 Stirling-PDF 的页面可视化管理与 PyMuPDF 实战](docs/knowledge-base/04_stirling_pdf_page_organizer_and_pymupdf.md)
+  5. [番剧原声交互与 Web Audio 短音频平滑播放工程](docs/knowledge-base/05_audio_engineering_and_voice_interaction.md)
+  6. [Electron Builder 绿色便携免安装版打包全流程指南](docs/knowledge-base/06_electron_portable_build_and_packaging.md)
 
 ---
 
