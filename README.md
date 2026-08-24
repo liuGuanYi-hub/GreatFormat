@@ -1,4 +1,4 @@
-# 💎 GreatFormat (太棒格式)
+# 💎 GreatFormat (太棒格式) — 纯本地离线原子级文件重构与全能格式转换器
 
 > **「这可真是太 Great 了！」—— 东方仗助**  
 > **Crazy Diamond · 纯本地离线原子级文件重构与全能格式转换器**
@@ -37,7 +37,7 @@
 
 ---
 
-## 🌟 核心理念与替身能力
+## ✨ 核心特性（Crazy Diamond 原子级能力）
 
 **GreatFormat** 的灵感来源于《JOJO的奇妙冒险：不灭钻石》主角 **东方仗助** 及其替身 **「疯狂钻石」（Crazy Diamond）**。
 
@@ -53,9 +53,9 @@
 
 ---
 
-## 🚀 六大杀手级核心特性
+## 🔄 六大核心能力与 59+ 格式支持矩阵
 
-### 1. 🔄 59+ 种全品类格式支持矩阵
+### 1. 59+ 全品类格式支持清单
 
 | 分类 | 支持格式清单 | 转换能力与底层引擎 |
 | :--- | :--- | :--- |
@@ -118,9 +118,10 @@
 
 ---
 
-## 💻 快速开始
+## 🚀 快速开始
 
 ### 1. 克隆与安装依赖
+
 ```bash
 # 克隆仓库
 git clone https://github.com/liuGuanYi-hub/GreatFormat.git
@@ -134,6 +135,7 @@ pip install pymupdf pdf2docx pandas openpyxl pyyaml pillow
 ```
 
 ### 2. 启动桌面端应用
+
 ```bash
 npm start
 # 或
@@ -170,9 +172,9 @@ node cli.js split-pdf manual.pdf --output-dir ./pages
 
 ---
 
-## 📂 项目工程结构
+## 📂 项目结构
 
-```
+```text
 GreatFormat/
 ├── src/
 │   ├── core/                   # 核心原子转换引擎矩阵
@@ -210,6 +212,16 @@ GreatFormat/
 
 ---
 
+## 🛠️ 技术栈与底层引擎
+
+- **桌面运行时**：Electron 30+、Node.js 20+
+- **图形与音视频引擎**：FFmpeg (Libav)、Sharp (libvips)、Libheif
+- **文档与版面引擎**：PyMuPDF (Fitz)、pdf2docx、Mammoth.js、Windows COM Automation
+- **数据与表格**：Pandas、OpenPyXL、PyYAML
+- **音频交互**：HTML5 Web Audio API、正弦增益曲线平滑 Fade In/Out
+
+---
+
 ## 📚 核心工程知识库 (Knowledge Base)
 
 本项目将开发过程中的**核心架构设计、高保真排版算法、音视频转码避坑与桌面端构建经验**系统性沉淀为 6 篇深度专栏，欢迎查阅：
@@ -224,7 +236,7 @@ GreatFormat/
 
 ---
 
-## 📜 开源协议
+## 📄 开源许可证
 
-本项目采用 [MIT License](LICENSE) 协议开源。
+本项目采用 [MIT License](LICENSE) 协议开源。  
 个人免费使用与学习交流，欢迎 Star 🌟 与 PR 贡献！
