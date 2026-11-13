@@ -981,6 +981,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // 接收主进程推送的外部文件（右键菜单/命令行启动参数）
+  if (window.electronAPI?.onExternalFile) {
+    window.electronAPI.onExternalFile((data) => {
+      if (!data || !data.path) return;
+      // 构造伪 File 对象，resolveFilePath 兜底逻辑会直接取 file.path
+      const pseudoFile = {
+        name: data.name || data.path.split(/[\\/]/).pop(),
+        path: data.path,
+        size: data.size || 0
+      };
+      addFiles([pseudoFile]);
+      console.log('[External] Loaded file from launch args:', data.path);
+    });
+  }
+
   // 批量统一格式
   batchTargetSelect.addEventListener('change', (e) => {
     const val = e.target.value;

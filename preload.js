@@ -18,5 +18,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showItemInFolder: (filePath) => ipcRenderer.invoke('greatformat:show-in-folder', filePath),
   toggleContextMenu: (enable) => ipcRenderer.invoke('greatformat:toggle-context-menu', enable),
   getPdfThumbnails: (filePath) => ipcRenderer.invoke('greatformat:pdf-thumbnails', filePath),
-  reorganizePdf: (params) => ipcRenderer.invoke('greatformat:pdf-reorganize', params)
+  reorganizePdf: (params) => ipcRenderer.invoke('greatformat:pdf-reorganize', params),
+  // 监听主进程推送的外部文件（右键菜单/命令行启动参数）
+  onExternalFile: (callback) => {
+    ipcRenderer.on('greatformat:external-file', (event, data) => callback(data));
+  }
 });

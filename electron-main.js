@@ -6,6 +6,41 @@ const OfficeEngine = require('./src/core/office-engine');
 
 let mainWindow;
 
+// 从启动参数中提取被右键/拖拽打开的文件（跳过 exe 与应用目录参数）
+function extractFileFromArgv(argv) {
+  for (let i = argv.length - 1; i >= 1; i--) {
+    const arg = argv[i];
+    try {
+      if (arg && fs.existsSync(arg) && fs.statSync(arg).isFile()) {
+        return arg;
+      }
+    } catch (e) { /* 跳过非法路径 */ }
+  }
+  return null;
+}
+
+// 把外部文件路径推送给渲染进程（窗口就绪后）
+function pushExternalFileToRenderer(filePath) {
+  if (!filePath || !mainWindow || mainWindow.isDestroyed()) return;
+  const send = () => {
+    try {
+      const stat = fs.statSync(filePath);
+      mainWindow.webContents.send('greatformat:external-file', {
+        path: filePath,
+        name: path.basename(filePath),
+        size: stat.size
+      });
+    } catch (e) {
+      console.error('[Main] pushExternalFile error:', e);
+    }
+  };
+  if (mainWindow.webContents.isLoading()) {
+    mainWindow.webContents.once('did-finish-load', send);
+  } else {
+    send();
+  }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1060,
@@ -145,14 +180,30 @@ function registerIpcHandlers() {
     const execAsync = util.promisify(exec);
 
     const exePath = process.execPath;
-    const iconPath = path.join(__dirname, 'src/assets/icon.ico');
+    // 打包后 __dirname 位于 asar 包内，注册表图标必须是磁盘上的真实文件，
+    // 因此先把图标提取到 userData 目录再登记，否则右键菜单无图标
+    let iconPath = path.join(__dirname, 'src/assets/icon.ico');
+    if (app.isPackaged) {
+      try {
+        const iconDest = path.join(app.getPath('userData'), 'greatformat-context-menu.ico');
+        fs.copyFileSync(iconPath, iconDest);
+        iconPath = iconDest;
+      } catch (e) {
+        console.warn('[Main] extract context-menu icon failed:', e);
+      }
+    }
+    // 开发模式下 process.execPath 是 electron.exe，必须先传应用目录，
+    // 否则被右键的文件会被 Electron 当作应用入口模块加载 (ERR_UNKNOWN_FILE_EXTENSION)
+    const command = app.isPackaged
+      ? `"${exePath}" "%1"`
+      : `"${exePath}" "${app.getAppPath()}" "%1"`;
 
     try {
       if (enable) {
         // 注册到当前用户的注册表
         await execAsync(`reg add "HKCU\\Software\\Classes\\*\\shell\\GreatFormat" /ve /d "用 GreatFormat 转换文件" /f`);
         await execAsync(`reg add "HKCU\\Software\\Classes\\*\\shell\\GreatFormat" /v "Icon" /d "${iconPath}" /f`);
-        await execAsync(`reg add "HKCU\\Software\\Classes\\*\\shell\\GreatFormat\\command" /ve /d "\\"${exePath}\\" \\"%1\\"" /f`);
+        await execAsync(`reg add "HKCU\\Software\\Classes\\*\\shell\\GreatFormat\\command" /ve /d "${command}" /f`);
         return { success: true, enabled: true };
       } else {
         await execAsync(`reg delete "HKCU\\Software\\Classes\\*\\shell\\GreatFormat" /f`);
@@ -188,14 +239,32 @@ function registerIpcHandlers() {
   });
 }
 
-app.whenReady().then(() => {
-  registerIpcHandlers();
-  createWindow();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+// 单实例锁：右键多个文件时只唤起已有窗口并追加任务
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, argv) => {
+    const filePath = extractFileFromArgv(argv);
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+      pushExternalFileToRenderer(filePath);
+    }
   });
-});
+
+  app.whenReady().then(() => {
+    registerIpcHandlers();
+    createWindow();
+
+    // 处理随启动参数传入的文件
+    pushExternalFileToRenderer(extractFileFromArgv(process.argv));
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+  });
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
